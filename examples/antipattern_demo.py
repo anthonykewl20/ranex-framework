@@ -15,7 +15,12 @@ Run: python examples/antipattern_demo.py
 
 import tempfile
 import os
-from ranex_core import AntipatternDetector
+try:
+    from ranex_core import AntipatternDetector
+    _antipattern_available = True
+except ImportError:
+    _antipattern_available = False
+    AntipatternDetector = None
 
 
 def demo_antipattern_detection():
@@ -24,6 +29,11 @@ def demo_antipattern_detection():
     print("Ranex Framework - Antipattern Detection Demo")
     print("=" * 70)
     print()
+    
+    if not _antipattern_available or AntipatternDetector is None:
+        print("⚠️  AntipatternDetector not available in this build.")
+        print("   This feature is optional and may not be included.")
+        return
     
     detector = AntipatternDetector()
     print("✅ Antipattern detector initialized")

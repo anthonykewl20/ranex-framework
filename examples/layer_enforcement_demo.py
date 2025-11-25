@@ -23,7 +23,7 @@ def demo_layer_enforcement():
     print("=" * 70)
     print()
     
-    enforcer = LayerEnforcer.new()
+    enforcer = LayerEnforcer()
     print("✅ Layer enforcer initialized")
     print()
     
@@ -140,7 +140,7 @@ layers = {
 
 from ranex_core import LayerEnforcer
 
-enforcer = LayerEnforcer.new()
+enforcer = LayerEnforcer()
 report = enforcer.scan(".")
 
 if not report.valid:

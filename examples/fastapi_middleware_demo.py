@@ -12,9 +12,17 @@ It demonstrates:
 Run: python examples/fastapi_middleware_demo.py
 """
 
+import os
+from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from ranex import Contract
+
+# Change to project root directory to ensure state.yaml files can be found
+# This allows the script to be run from any directory
+script_dir = Path(__file__).parent.absolute()
+project_root = script_dir.parent
+os.chdir(project_root)
 
 
 app = FastAPI(title="Ranex FastAPI Middleware Demo")

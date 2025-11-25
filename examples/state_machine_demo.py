@@ -13,7 +13,16 @@ Run: python examples/state_machine_demo.py
 """
 
 import asyncio
+import os
+import sys
+from pathlib import Path
 from ranex_core import StateMachine
+
+# Change to project root directory to ensure state.yaml files can be found
+# This allows the script to be run from any directory
+script_dir = Path(__file__).parent.absolute()
+project_root = script_dir.parent
+os.chdir(project_root)
 
 
 # ============================================================================

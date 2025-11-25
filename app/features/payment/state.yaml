@@ -10,12 +10,7 @@ states:
   - Refunded
 
 transitions:
-  Idle:
-    - Processing
-  Processing:
-    - Paid
-    - Failed
-  Paid:
-    - Refunding
-  Refunding:
-    - Refunded
+  Idle: [Processing]
+  Processing: [Paid, Failed]
+  Paid: [Refunding]
+  Refunding: [Refunded]

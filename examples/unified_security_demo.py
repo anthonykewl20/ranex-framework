@@ -14,7 +14,14 @@ Run: python examples/unified_security_demo.py
 import os
 import tempfile
 # Note: SecurityScanner is internal, not directly exposed
-from ranex_core import UnifiedSecurityScanner, AntipatternDetector, DependencyScannerOSV
+try:
+    from ranex_core import UnifiedSecurityScanner, AntipatternDetector, DependencyScannerOSV
+    _security_available = True
+except ImportError:
+    _security_available = False
+    UnifiedSecurityScanner = None
+    AntipatternDetector = None
+    DependencyScannerOSV = None
 
 
 def demo_unified_security():
@@ -25,6 +32,12 @@ def demo_unified_security():
     print()
     
     # Initialize unified scanner
+    if not _security_available or UnifiedSecurityScanner is None:
+        print("⚠️  UnifiedSecurityScanner not available in this build.")
+        print("   This feature is optional and may not be included.")
+        print("   See examples/security_scan_demo.py for fallback demonstration.")
+        return
+    
     try:
         scanner = UnifiedSecurityScanner.new()
         print("✅ Unified security scanner initialized")
@@ -106,31 +119,37 @@ def process(items=[]): pass
     print("SAST Scanner:")
     # SecurityScanner is internal - UnifiedSecurityScanner includes SAST scanning
     # sast_scanner = SecurityScanner()  # Not available - use UnifiedSecurityScanner instead
-    sast_violations = sast_scanner.scan_content(test_code)
-    print(f"  Violations: {len(sast_violations)}")
-    for v in sast_violations:
-        print(f"    [{v.severity.upper()}] {v.category}: {v.message}")
+    print("  ⚠️  SAST scanning is included in UnifiedSecurityScanner")
     print()
     
     # Antipattern detector
     print("Antipattern Detector:")
-    antipattern_detector = AntipatternDetector()
-    antipattern_violations = antipattern_detector.scan_content(test_code)
-    print(f"  Violations: {len(antipattern_violations)}")
-    for v in antipattern_violations:
-        print(f"    [{v.severity.upper()}] {v.pattern}: {v.message}")
+    if AntipatternDetector is None:
+        print("  ⚠️  AntipatternDetector not available in this build")
+    else:
+        try:
+            antipattern_detector = AntipatternDetector()
+            antipattern_violations = antipattern_detector.scan_content(test_code)
+            print(f"  Violations: {len(antipattern_violations)}")
+            for v in antipattern_violations:
+                print(f"    [{v.severity.upper()}] {v.pattern}: {v.message}")
+        except Exception as e:
+            print(f"  ⚠️  Antipattern scan error: {e}")
     print()
     
     # Dependency scanner
     print("Dependency Scanner:")
-    try:
-        dep_scanner = DependencyScannerOSV.new_offline()
-        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        dep_result = dep_scanner.scan_project(project_root)
-        print(f"  Dependencies scanned: {dep_result.total_dependencies}")
-        print(f"  Vulnerabilities: {len(dep_result.vulnerabilities)}")
-    except Exception as e:
-        print(f"  ⚠️  Dependency scan error: {e}")
+    if DependencyScannerOSV is None:
+        print("  ⚠️  DependencyScannerOSV not available in this build")
+    else:
+        try:
+            dep_scanner = DependencyScannerOSV.new_offline()
+            project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            dep_result = dep_scanner.scan_project(project_root)
+            print(f"  Dependencies scanned: {dep_result.total_dependencies}")
+            print(f"  Vulnerabilities: {len(dep_result.vulnerabilities)}")
+        except Exception as e:
+            print(f"  ⚠️  Dependency scan error: {e}")
     print()
     
     # Demo 3: Severity prioritization

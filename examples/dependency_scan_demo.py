@@ -15,7 +15,12 @@ Run: python examples/dependency_scan_demo.py
 
 import os
 import sys
-from ranex_core import DependencyScannerOSV
+try:
+    from ranex_core import DependencyScannerOSV
+    _dependency_scanner_available = True
+except ImportError:
+    _dependency_scanner_available = False
+    DependencyScannerOSV = None
 
 
 def demo_dependency_scanning():
@@ -26,6 +31,11 @@ def demo_dependency_scanning():
     print()
     
     # Initialize scanner
+    if not _dependency_scanner_available or DependencyScannerOSV is None:
+        print("⚠️  DependencyScannerOSV not available in this build.")
+        print("   This feature is optional and may not be included.")
+        return
+    
     try:
         scanner = DependencyScannerOSV.new()
         print("✅ Dependency scanner initialized (OSV API enabled)")

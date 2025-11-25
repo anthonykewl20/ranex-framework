@@ -12,7 +12,12 @@ It demonstrates:
 Run: python examples/ffi_validation_demo.py
 """
 
-from ranex_core import FFIValidator
+try:
+    from ranex_core import FFIValidator
+    _ffi_available = True
+except ImportError:
+    _ffi_available = False
+    FFIValidator = None
 
 
 def demo_ffi_validation():
@@ -21,6 +26,11 @@ def demo_ffi_validation():
     print("Ranex Framework - FFI Validation Demo")
     print("=" * 70)
     print()
+    
+    if not _ffi_available or FFIValidator is None:
+        print("⚠️  FFIValidator not available in this build.")
+        print("   This feature is optional and may not be included.")
+        return
     
     validator = FFIValidator()
     print("✅ FFI validator initialized")

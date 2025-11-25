@@ -228,27 +228,63 @@ jobs:
             ${{ runner.os }}-pip-
       
       - name: Generate Python SBOM
+        id: python_sbom
         shell: bash
         run: |
           set -euo pipefail
-          pip install --no-cache-dir cyclonedx-bom
-          cyclonedx-py -o sbom-python.json -pb || echo "SBOM generation completed"
+          pip install --no-cache-dir cyclonedx-bom || pip install --no-cache-dir cyclonedx-py || echo "⚠️ cyclonedx-bom not available"
+          if command -v cyclonedx-py &> /dev/null; then
+            cyclonedx-py -o sbom-python.json -pb && echo "python_sbom=true" >> $GITHUB_OUTPUT || echo "python_sbom=false" >> $GITHUB_OUTPUT
+          elif command -v cyclonedx &> /dev/null; then
+            cyclonedx py -o sbom-python.json && echo "python_sbom=true" >> $GITHUB_OUTPUT || echo "python_sbom=false" >> $GITHUB_OUTPUT
+          else
+            echo "⚠️ No cyclonedx tool available - skipping Python SBOM"
+            echo "python_sbom=false" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Check for Cargo.toml (Rust SBOM)
+        id: check_cargo_sbom
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f "Cargo.toml" ] || [ -f "../Cargo.toml" ]; then
+            echo "cargo_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "cargo_exists=false" >> $GITHUB_OUTPUT
+          fi
       
       - name: Generate Rust SBOM
+        if: steps.check_cargo_sbom.outputs.cargo_exists == 'true'
+        id: rust_sbom
         working-directory: ${{ github.workspace }}
         shell: bash
         run: |
           set -euo pipefail
-          cargo install cargo-cyclonedx || true
-          cargo cyclonedx -o sbom-rust.json || echo "SBOM generation completed"
+          cargo install cargo-cyclonedx --quiet || echo "⚠️ cargo-cyclonedx installation failed"
+          if command -v cargo-cyclonedx &> /dev/null || cargo cyclonedx --help &> /dev/null; then
+            cargo cyclonedx -o sbom-rust.json && echo "rust_sbom=true" >> $GITHUB_OUTPUT || echo "rust_sbom=false" >> $GITHUB_OUTPUT
+          else
+            echo "⚠️ cargo-cyclonedx not available - skipping Rust SBOM"
+            echo "rust_sbom=false" >> $GITHUB_OUTPUT
+          fi
       
       - name: Upload SBOM artifacts
+        if: steps.python_sbom.outputs.python_sbom == 'true' || steps.rust_sbom.outputs.rust_sbom == 'true'
         uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
+        continue-on-error: true
         with:
           name: sbom
           path: |
             sbom-*.json
           retention-days: 90
+      
+      - name: Skip SBOM upload (no files generated)
+        if: steps.python_sbom.outputs.python_sbom != 'true' && (steps.check_cargo_sbom.outputs.cargo_exists != 'true' || steps.rust_sbom.outputs.rust_sbom != 'true')
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "⚠️ No SBOM files generated - skipping upload"
+          echo "This is expected if cyclonedx tools are not available or no Rust code exists"
 
   # Security Policy Check
   security-policy:

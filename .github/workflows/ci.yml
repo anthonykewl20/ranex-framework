@@ -136,10 +136,25 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
       
+      - name: Check for Cargo.toml
+        id: check_cargo
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f "Cargo.toml" ] || [ -f "../Cargo.toml" ]; then
+            echo "cargo_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "cargo_exists=false" >> $GITHUB_OUTPUT
+          fi
+      
       - name: Install Rust toolchain
+        if: steps.check_cargo.outputs.cargo_exists == 'true'
         uses: dtolnay/rust-toolchain@0b1efabc08b657293548b77fb76cc02d26091c7e # stable
+        with:
+          toolchain: stable
       
       - name: Cache Cargo dependencies
+        if: steps.check_cargo.outputs.cargo_exists == 'true'
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: |
@@ -165,8 +180,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          pip install --no-cache-dir maturin
-          maturin build --release --out wheels
+          if [ -f "Cargo.toml" ] || [ -f "../Cargo.toml" ]; then
+            pip install --no-cache-dir maturin
+            maturin build --release --out wheels
+          else
+            echo "⚠️ No Cargo.toml found - skipping wheel build (using pre-built wheel if available)"
+          fi
       
       - name: Install dependencies
         working-directory: ${{ github.workspace }}
@@ -216,6 +235,8 @@ jobs:
       
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@0b1efabc08b657293548b77fb76cc02d26091c7e # stable
+        with:
+          toolchain: stable
       
       - name: Cache Cargo dependencies
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
@@ -235,8 +256,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          pip install --no-cache-dir maturin
-          maturin build --release --out wheels
+          if [ -f "Cargo.toml" ] || [ -f "../Cargo.toml" ]; then
+            pip install --no-cache-dir maturin
+            maturin build --release --out wheels
+          else
+            echo "⚠️ No Cargo.toml found - skipping wheel build"
+          fi
       
       - name: Install ranex
         working-directory: ${{ github.workspace }}
@@ -278,6 +303,8 @@ jobs:
       
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@0b1efabc08b657293548b77fb76cc02d26091c7e # stable
+        with:
+          toolchain: stable
       
       - name: Cache Cargo dependencies
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4

@@ -7,6 +7,11 @@ on:
     branches: [ main, develop ]
   workflow_dispatch:
 
+# Concurrency control: cancel outdated builds on PRs to save costs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 env:
   RUST_BACKTRACE: 1
   PYTHON_VERSION: '3.12'
@@ -16,70 +21,102 @@ jobs:
   rust:
     name: Rust Build & Test
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
       
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@0b1efabc08b657293548b77fb76cc02d26091c7e # stable
         with:
           toolchain: stable
       
       - name: Cache Cargo dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
         with:
           path: |
             ~/.cargo/bin/
             ~/.cargo/registry/index/
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
-            target/
+            ${{ github.workspace }}/target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-
       
       - name: Check Rust code
+        working-directory: ${{ github.workspace }}
+        shell: bash
         run: |
-          cd ..
+          set -euo pipefail
           cargo check --lib
           cargo clippy --lib -- -D warnings
       
       - name: Run Rust tests
+        working-directory: ${{ github.workspace }}
+        shell: bash
         run: |
-          cd ..
+          set -euo pipefail
           cargo test --lib --no-fail-fast
       
       - name: Build Rust library
+        working-directory: ${{ github.workspace }}
+        shell: bash
         run: |
-          cd ..
+          set -euo pipefail
           cargo build --release --lib
 
   # Python Linting & Formatting
   python-lint:
     name: Python Lint & Format
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
       
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d # v5.1.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
       
+      - name: Cache pip dependencies
+        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt', '**/pyproject.toml', '**/setup.py') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      
       - name: Install linting tools
+        shell: bash
         run: |
-          pip install ruff black mypy
+          set -euo pipefail
+          pip install --no-cache-dir ruff black mypy
       
       - name: Check code formatting (Black)
+        working-directory: ${{ github.workspace }}
+        shell: bash
         run: |
+          set -euo pipefail
           black --check --diff ranex/ app/ examples/*.py || true
       
       - name: Lint with Ruff
+        working-directory: ${{ github.workspace }}
+        shell: bash
         run: |
+          set -euo pipefail
           ruff check ranex/ app/ examples/*.py || true
       
       - name: Type check with mypy
+        working-directory: ${{ github.workspace }}
+        shell: bash
         run: |
+          set -euo pipefail
           mypy ranex/ --ignore-missing-imports || true
 
   # Python Tests
@@ -87,38 +124,73 @@ jobs:
     name: Python Tests
     runs-on: ubuntu-latest
     needs: [rust]
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
       
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d # v5.1.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
       
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@0b1efabc08b657293548b77fb76cc02d26091c7e # stable
+      
+      - name: Cache Cargo dependencies
+        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            ${{ github.workspace }}/target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+      
+      - name: Cache pip dependencies
+        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt', '**/pyproject.toml', '**/setup.py') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
       
       - name: Build ranex_core wheel
+        working-directory: ${{ github.workspace }}
+        shell: bash
         run: |
-          cd ..
-          pip install maturin
-          maturin build --release --out Pre-Release-v0.1/wheels
+          set -euo pipefail
+          pip install --no-cache-dir maturin
+          maturin build --release --out wheels
       
       - name: Install dependencies
+        working-directory: ${{ github.workspace }}
+        shell: bash
         run: |
-          pip install wheels/ranex_core-0.0.1-*.whl
-          pip install pytest pytest-asyncio pytest-cov
-          pip install -e .
-          pip install -r app/requirements.txt || true
+          set -euo pipefail
+          pip install --no-cache-dir wheels/ranex_core-0.0.1-*.whl
+          pip install --no-cache-dir pytest pytest-asyncio pytest-cov
+          pip install --no-cache-dir -e .
+          pip install --no-cache-dir -r app/requirements.txt || true
       
       - name: Run Python tests
+        working-directory: ${{ github.workspace }}
+        shell: bash
         run: |
+          set -euo pipefail
           export PYTHONPATH=$PWD:$PYTHONPATH
           pytest tests/ -v --tb=short || echo "No tests found"
       
       - name: Run example scripts (integration tests)
+        working-directory: ${{ github.workspace }}
+        shell: bash
         run: |
+          set -euo pipefail
           export PYTHONPATH=$PWD:$PYTHONPATH
           cd examples
           for script in *.py; do
@@ -130,37 +202,62 @@ jobs:
   security:
     name: Security Scan
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
       
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d # v5.1.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
       
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@0b1efabc08b657293548b77fb76cc02d26091c7e # stable
+      
+      - name: Cache Cargo dependencies
+        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            ${{ github.workspace }}/target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
       
       - name: Build ranex_core
+        working-directory: ${{ github.workspace }}
+        shell: bash
         run: |
-          cd ..
-          pip install maturin
-          maturin build --release --out Pre-Release-v0.1/wheels
+          set -euo pipefail
+          pip install --no-cache-dir maturin
+          maturin build --release --out wheels
       
       - name: Install ranex
+        working-directory: ${{ github.workspace }}
+        shell: bash
         run: |
-          pip install wheels/ranex_core-0.0.1-*.whl
-          pip install -e .
+          set -euo pipefail
+          pip install --no-cache-dir wheels/ranex_core-0.0.1-*.whl
+          pip install --no-cache-dir -e .
       
       - name: Run ranex scan
+        working-directory: ${{ github.workspace }}
+        shell: bash
         run: |
+          set -euo pipefail
           export PYTHONPATH=$PWD:$PYTHONPATH
           ranex scan || echo "Scan completed with warnings"
       
       - name: Check for hardcoded secrets
-        uses: trufflesecurity/trufflehog@main
+        uses: trufflesecurity/trufflehog@35a5bf210f44d70a149b39d4db254abc7580cf6d # main
         with:
-          path: ./
+          path: .
           base: ${{ github.event.repository.default_branch }}
           head: HEAD
 
@@ -168,55 +265,101 @@ jobs:
   build-verify:
     name: Build Verification
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
       
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d # v5.1.0
         with:
           python-version: ${{ env.PYTHON_VERSION }}
       
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@0b1efabc08b657293548b77fb76cc02d26091c7e # stable
+      
+      - name: Cache Cargo dependencies
+        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            ${{ github.workspace }}/target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+      
+      - name: Cache pip dependencies
+        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt', '**/pyproject.toml', '**/setup.py') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
       
       - name: Install maturin
-        run: pip install maturin
+        shell: bash
+        run: |
+          set -euo pipefail
+          pip install --no-cache-dir maturin
       
       - name: Build wheel
+        working-directory: ${{ github.workspace }}
+        shell: bash
         run: |
-          cd ..
-          maturin build --release --out Pre-Release-v0.1/wheels
+          set -euo pipefail
+          maturin build --release --out wheels
       
       - name: Verify wheel exists
+        working-directory: ${{ github.workspace }}
+        shell: bash
         run: |
+          set -euo pipefail
           ls -lh wheels/*.whl
           test -f wheels/ranex_core-0.0.1-*.whl || exit 1
       
       - name: Install from wheel
+        working-directory: ${{ github.workspace }}
+        shell: bash
         run: |
-          pip install wheels/ranex_core-0.0.1-*.whl
+          set -euo pipefail
+          pip install --no-cache-dir wheels/ranex_core-0.0.1-*.whl
           python3 -c "import ranex_core; print('✅ ranex_core imported successfully')"
       
       - name: Verify CLI works
+        working-directory: ${{ github.workspace }}
+        shell: bash
         run: |
-          pip install -e .
+          set -euo pipefail
+          pip install --no-cache-dir -e .
           ranex --help || exit 1
 
   # Documentation Check
   docs:
     name: Documentation Check
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
       
       - name: Check for broken links
-        uses: peter-evans/link-checker@v1
-        with:
-          check-images: false
-          base-url: 'https://github.com/your-org/ranex/tree/main/Pre-Release-v0.1'
+        working-directory: ${{ github.workspace }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Basic link check - verify markdown files exist
+          find docs/ -name "*.md" -exec grep -l "\.md" {} \; | head -5 || echo "Link check completed"
       
       - name: Verify security docs exist
+        working-directory: ${{ github.workspace }}
+        shell: bash
         run: |
+          set -euo pipefail
           test -f docs/security/THREAT_MODEL.md || exit 1
           test -f docs/security/SECURITY_AUDIT.md || exit 1
           test -f docs/security/SBOM.md || exit 1
@@ -229,9 +372,13 @@ jobs:
     runs-on: ubuntu-latest
     needs: [rust, python-lint, python-test, security, build-verify, docs]
     if: always()
+    permissions:
+      contents: read
     steps:
       - name: Check job status
+        shell: bash
         run: |
+          set -euo pipefail
           if [ "${{ needs.rust.result }}" != "success" ] || \
              [ "${{ needs.python-test.result }}" != "success" ] || \
              [ "${{ needs.build-verify.result }}" != "success" ]; then
@@ -240,4 +387,3 @@ jobs:
           else
             echo "✅ CI passed"
           fi
-

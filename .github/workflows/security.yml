@@ -10,47 +10,90 @@ on:
     - cron: '0 9 * * 1'
   workflow_dispatch:
 
+# Concurrency control: cancel outdated builds on PRs to save costs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   # Dependency Vulnerability Scanning
   dependency-scan:
     name: Dependency Vulnerability Scan
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
       
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d # v5.1.0
         with:
           python-version: '3.12'
           cache: 'pip'
       
+      - name: Cache pip dependencies
+        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt', '**/pyproject.toml', '**/setup.py') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@0b1efabc08b657293548b77fb76cc02d26091c7e # stable
+      
+      - name: Cache Cargo dependencies
+        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            ${{ github.workspace }}/target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
       
       - name: Build ranex_core
+        working-directory: ${{ github.workspace }}
+        shell: bash
         run: |
-          cd ..
-          pip install maturin
-          maturin build --release --out Pre-Release-v0.1/wheels
+          set -euo pipefail
+          pip install --no-cache-dir maturin
+          maturin build --release --out wheels
       
       - name: Install dependencies
+        working-directory: ${{ github.workspace }}
+        shell: bash
         run: |
-          pip install wheels/ranex_core-0.0.1-*.whl
-          pip install -e .
+          set -euo pipefail
+          pip install --no-cache-dir wheels/ranex_core-0.0.1-*.whl
+          pip install --no-cache-dir -e .
       
       - name: Run dependency scan
+        working-directory: ${{ github.workspace }}
+        shell: bash
         run: |
+          set -euo pipefail
           export PYTHONPATH=$PWD:$PYTHONPATH
           ranex scan || echo "Scan completed"
       
       - name: Check for known vulnerabilities (Python)
+        working-directory: ${{ github.workspace }}
+        shell: bash
         run: |
-          pip install safety
+          set -euo pipefail
+          pip install --no-cache-dir safety
           safety check --file pyproject.toml || echo "⚠️ Some vulnerabilities found"
       
       - name: Check for known vulnerabilities (Rust)
+        working-directory: ${{ github.workspace }}
+        shell: bash
         run: |
-          cd ..
+          set -euo pipefail
           cargo install cargo-audit || true
           cargo audit || echo "⚠️ Some vulnerabilities found"
 
@@ -58,30 +101,63 @@ jobs:
   code-scan:
     name: Code Security Scan
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
       
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d # v5.1.0
         with:
           python-version: '3.12'
       
+      - name: Cache pip dependencies
+        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt', '**/pyproject.toml', '**/setup.py') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@0b1efabc08b657293548b77fb76cc02d26091c7e # stable
+      
+      - name: Cache Cargo dependencies
+        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            ${{ github.workspace }}/target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
       
       - name: Build ranex_core
+        working-directory: ${{ github.workspace }}
+        shell: bash
         run: |
-          cd ..
-          pip install maturin
-          maturin build --release --out Pre-Release-v0.1/wheels
+          set -euo pipefail
+          pip install --no-cache-dir maturin
+          maturin build --release --out wheels
       
       - name: Install ranex
+        working-directory: ${{ github.workspace }}
+        shell: bash
         run: |
-          pip install wheels/ranex_core-0.0.1-*.whl
-          pip install -e .
+          set -euo pipefail
+          pip install --no-cache-dir wheels/ranex_core-0.0.1-*.whl
+          pip install --no-cache-dir -e .
       
       - name: Run security scan on codebase
+        working-directory: ${{ github.workspace }}
+        shell: bash
         run: |
+          set -euo pipefail
           export PYTHONPATH=$PWD:$PYTHONPATH
           # Scan Python files
           find ranex/ app/ examples/ -name "*.py" -exec python3 -c "
@@ -102,27 +178,43 @@ jobs:
     name: Generate SBOM
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      actions: write
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
       
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d # v5.1.0
         with:
           python-version: '3.12'
       
+      - name: Cache pip dependencies
+        uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements*.txt', '**/pyproject.toml', '**/setup.py') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      
       - name: Generate Python SBOM
+        shell: bash
         run: |
-          pip install cyclonedx-bom
+          set -euo pipefail
+          pip install --no-cache-dir cyclonedx-bom
           cyclonedx-py -o sbom-python.json -pb || echo "SBOM generation completed"
       
       - name: Generate Rust SBOM
+        working-directory: ${{ github.workspace }}
+        shell: bash
         run: |
+          set -euo pipefail
           cargo install cargo-cyclonedx || true
-          cd ..
-          cargo cyclonedx -o Pre-Release-v0.1/sbom-rust.json || echo "SBOM generation completed"
+          cargo cyclonedx -o sbom-rust.json || echo "SBOM generation completed"
       
       - name: Upload SBOM artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
         with:
           name: sbom
           path: |
@@ -133,11 +225,17 @@ jobs:
   security-policy:
     name: Security Policy Check
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
       
       - name: Verify security documentation
+        working-directory: ${{ github.workspace }}
+        shell: bash
         run: |
+          set -euo pipefail
           test -f .github/SECURITY.md || exit 1
           test -f docs/security/THREAT_MODEL.md || exit 1
           test -f docs/security/SECURITY_AUDIT.md || exit 1
@@ -145,7 +243,9 @@ jobs:
           echo "✅ All security documentation present"
       
       - name: Verify Dependabot config
+        working-directory: ${{ github.workspace }}
+        shell: bash
         run: |
+          set -euo pipefail
           test -f .github/dependabot.yml || exit 1
           echo "✅ Dependabot configured"
-

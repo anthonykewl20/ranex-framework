@@ -33,7 +33,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ -f "Cargo.toml" ] || [ -f "../Cargo.toml" ]; then
+          if [ -f "Cargo.toml" ]; then
             echo "cargo_exists=true" >> $GITHUB_OUTPUT
           else
             echo "cargo_exists=false" >> $GITHUB_OUTPUT
@@ -128,21 +128,21 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          black --check --diff ranex/ app/ examples/*.py || true
+          black --check --diff ranex/ app/ examples/*.py
       
       - name: Lint with Ruff
         working-directory: ${{ github.workspace }}
         shell: bash
         run: |
           set -euo pipefail
-          ruff check ranex/ app/ examples/*.py || true
+          ruff check ranex/ app/ examples/*.py
       
       - name: Type check with mypy
         working-directory: ${{ github.workspace }}
         shell: bash
         run: |
           set -euo pipefail
-          mypy ranex/ --ignore-missing-imports || true
+          mypy ranex/ --ignore-missing-imports
 
   # Python Tests
   python-test:
@@ -161,12 +161,21 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           # Note: cache disabled to avoid warnings - using explicit actions/cache instead
       
+      - name: Extract version from pyproject.toml
+        id: get_version
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION=$(grep -E '^version = ' pyproject.toml | sed -E 's/version = "(.+)"/\1/')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Extracted version: $VERSION"
+      
       - name: Check for Cargo.toml
         id: check_cargo
         shell: bash
         run: |
           set -euo pipefail
-          if [ -f "Cargo.toml" ] || [ -f "../Cargo.toml" ]; then
+          if [ -f "Cargo.toml" ]; then
             echo "cargo_exists=true" >> $GITHUB_OUTPUT
           else
             echo "cargo_exists=false" >> $GITHUB_OUTPUT
@@ -206,7 +215,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ -f "Cargo.toml" ] || [ -f "../Cargo.toml" ]; then
+          if [ -f "Cargo.toml" ]; then
             pip install --no-cache-dir maturin
             maturin build --release --out wheels
           else
@@ -218,10 +227,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          pip install --no-cache-dir wheels/ranex_core-0.0.1-*.whl || echo "⚠️ Wheel not found, skipping"
+          VERSION="${{ steps.get_version.outputs.version }}"
+          pip install --no-cache-dir wheels/ranex_core-${VERSION}-*.whl || echo "⚠️ Wheel not found, skipping"
           pip install --no-cache-dir pytest pytest-asyncio pytest-cov
           # Install ranex package - use setup.py if pyproject.toml uses maturin without Cargo.toml
-          if [ -f "Cargo.toml" ] || [ -f "../Cargo.toml" ]; then
+          if [ -f "Cargo.toml" ]; then
             pip install --no-cache-dir -e .
           else
             echo "⚠️ No Cargo.toml - installing CLI dependencies via setup.py instead"
@@ -287,12 +297,21 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
       
+      - name: Extract version from pyproject.toml
+        id: get_version_security
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION=$(grep -E '^version = ' pyproject.toml | sed -E 's/version = "(.+)"/\1/')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Extracted version: $VERSION"
+      
       - name: Build ranex_core
         working-directory: ${{ github.workspace }}
         shell: bash
         run: |
           set -euo pipefail
-          if [ -f "Cargo.toml" ] || [ -f "../Cargo.toml" ]; then
+          if [ -f "Cargo.toml" ]; then
             pip install --no-cache-dir maturin
             maturin build --release --out wheels
           else
@@ -304,8 +323,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          pip install --no-cache-dir wheels/ranex_core-0.0.1-*.whl || echo "⚠️ Wheel not found"
-          if [ -f "Cargo.toml" ] || [ -f "../Cargo.toml" ]; then
+          VERSION="${{ steps.get_version_security.outputs.version }}"
+          pip install --no-cache-dir wheels/ranex_core-${VERSION}-*.whl || echo "⚠️ Wheel not found"
+          if [ -f "Cargo.toml" ]; then
             pip install --no-cache-dir -e .
           else
             echo "⚠️ No Cargo.toml - installing CLI dependencies via setup.py"
@@ -319,7 +339,7 @@ jobs:
         run: |
           set -euo pipefail
           export PYTHONPATH="${PYTHONPATH:-}:$PWD"
-          ranex scan || echo "Scan completed with warnings"
+          ranex scan
       
       - name: Check if BASE != HEAD (for TruffleHog)
         id: check_commits
@@ -371,12 +391,21 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
       
+      - name: Extract version from pyproject.toml
+        id: get_version_build
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION=$(grep -E '^version = ' pyproject.toml | sed -E 's/version = "(.+)"/\1/')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Extracted version: $VERSION"
+      
       - name: Check for Cargo.toml
         id: check_cargo_build
         shell: bash
         run: |
           set -euo pipefail
-          if [ -f "Cargo.toml" ] || [ -f "../Cargo.toml" ]; then
+          if [ -f "Cargo.toml" ]; then
             echo "cargo_exists=true" >> $GITHUB_OUTPUT
           else
             echo "cargo_exists=false" >> $GITHUB_OUTPUT
@@ -423,7 +452,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ -f "Cargo.toml" ] || [ -f "../Cargo.toml" ]; then
+          if [ -f "Cargo.toml" ]; then
             pip install --no-cache-dir maturin
             maturin build --release --out wheels
           else
@@ -435,15 +464,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          VERSION="${{ steps.get_version_build.outputs.version }}"
           ls -lh wheels/*.whl
-          test -f wheels/ranex_core-0.0.1-*.whl || exit 1
+          test -f wheels/ranex_core-${VERSION}-*.whl || exit 1
       
       - name: Install from wheel
         working-directory: ${{ github.workspace }}
         shell: bash
         run: |
           set -euo pipefail
-          pip install --no-cache-dir wheels/ranex_core-0.0.1-*.whl
+          VERSION="${{ steps.get_version_build.outputs.version }}"
+          pip install --no-cache-dir wheels/ranex_core-${VERSION}-*.whl
           python3 -c "import ranex_core; print('✅ ranex_core imported successfully')"
       
       - name: Verify CLI works
@@ -451,7 +482,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ -f "Cargo.toml" ] || [ -f "../Cargo.toml" ]; then
+          if [ -f "Cargo.toml" ]; then
             pip install --no-cache-dir -e .
           else
             echo "⚠️ No Cargo.toml - installing CLI dependencies"
@@ -513,10 +544,21 @@ jobs:
         run: |
           set -euo pipefail
           if [ "${{ needs.rust.result }}" != "success" ] || \
+             [ "${{ needs.python-lint.result }}" != "success" ] || \
              [ "${{ needs.python-test.result }}" != "success" ] || \
-             [ "${{ needs.build-verify.result }}" != "success" ]; then
+             [ "${{ needs.security.result }}" != "success" ] || \
+             [ "${{ needs.build-verify.result }}" != "success" ] || \
+             [ "${{ needs.docs.result }}" != "success" ]; then
             echo "❌ CI failed"
+            echo "Job results:"
+            echo "  rust: ${{ needs.rust.result }}"
+            echo "  python-lint: ${{ needs.python-lint.result }}"
+            echo "  python-test: ${{ needs.python-test.result }}"
+            echo "  security: ${{ needs.security.result }}"
+            echo "  build-verify: ${{ needs.build-verify.result }}"
+            echo "  docs: ${{ needs.docs.result }}"
             exit 1
           else
             echo "✅ CI passed"
+            echo "All jobs completed successfully"
           fi

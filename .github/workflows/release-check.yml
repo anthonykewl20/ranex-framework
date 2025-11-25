@@ -59,21 +59,42 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
       
+      - name: Extract version from pyproject.toml
+        id: get_version_release
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION=$(grep -E '^version = ' pyproject.toml | sed -E 's/version = "(.+)"/\1/')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Extracted version from pyproject.toml: $VERSION"
+      
       - name: Check version consistency
         working-directory: ${{ github.workspace }}
         shell: bash
         run: |
           set -euo pipefail
-          VERSION="${{ github.event.inputs.version || github.ref_name }}"
+          EXPECTED_VERSION="${{ github.event.inputs.version || github.ref_name }}"
           # Strip 'v' prefix if present
-          VERSION="${VERSION#v}"
-          echo "Checking version: $VERSION"
+          EXPECTED_VERSION="${EXPECTED_VERSION#v}"
+          ACTUAL_VERSION="${{ steps.get_version_release.outputs.version }}"
+          echo "Expected version: $EXPECTED_VERSION"
+          echo "Actual version in pyproject.toml: $ACTUAL_VERSION"
           
-          # Check pyproject.toml
-          grep -q "version = \"$VERSION\"" pyproject.toml || exit 1
+          # Check pyproject.toml version matches expected
+          if [ "$ACTUAL_VERSION" != "$EXPECTED_VERSION" ]; then
+            echo "❌ Version mismatch: expected $EXPECTED_VERSION, found $ACTUAL_VERSION"
+            exit 1
+          fi
           
-          # Check Cargo.toml (in parent)
-          grep -q "version = \"$VERSION\"" ../Cargo.toml || exit 1
+          # Check Cargo.toml if it exists
+          if [ -f "Cargo.toml" ]; then
+            CARGO_VERSION=$(grep -E '^version = ' Cargo.toml | sed -E 's/version = "(.+)"/\1/')
+            if [ "$CARGO_VERSION" != "$EXPECTED_VERSION" ]; then
+              echo "❌ Cargo.toml version mismatch: expected $EXPECTED_VERSION, found $CARGO_VERSION"
+              exit 1
+            fi
+            echo "✅ Cargo.toml version matches"
+          fi
           
           echo "✅ Version consistent"
       
@@ -115,7 +136,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ -f "Cargo.toml" ] || [ -f "../Cargo.toml" ]; then
+          if [ -f "Cargo.toml" ]; then
             pip install --no-cache-dir maturin
             maturin build --release --out wheels
           else
@@ -127,7 +148,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          pip install --no-cache-dir wheels/ranex_core-*.whl
+          VERSION="${{ steps.get_version_release.outputs.version }}"
+          pip install --no-cache-dir wheels/ranex_core-${VERSION}-*.whl
           python3 -c "import ranex_core; print('✅ ranex_core imports')"
           python3 -c "from ranex_core import SchemaValidator; print('✅ SchemaValidator available')" || echo "⚠️ SchemaValidator import check skipped"
       
@@ -136,7 +158,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ -f "Cargo.toml" ] || [ -f "../Cargo.toml" ]; then
+          if [ -f "Cargo.toml" ]; then
             pip install --no-cache-dir -e .
           else
             echo "⚠️ No Cargo.toml - installing CLI dependencies"
@@ -166,6 +188,7 @@ jobs:
           grep -q "SBOM.md" README.md || echo "⚠️ README doesn't reference SBOM"
       
       - name: Release checklist summary
+        if: success()
         shell: bash
         run: |
           set -euo pipefail
@@ -179,3 +202,14 @@ jobs:
           echo "- [x] Security documentation present" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Status:** Ready for Pre-Release" >> $GITHUB_STEP_SUMMARY
+      
+      - name: Release checklist failure summary
+        if: failure()
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "## Pre-Release Checklist ❌" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** Pre-Release checks failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Please review the failed steps above and fix the issues before releasing." >> $GITHUB_STEP_SUMMARY

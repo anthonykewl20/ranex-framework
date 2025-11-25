@@ -65,12 +65,19 @@ pip install -r app/requirements.txt
 ```
 
 **Key dependencies:**
-- FastAPI
-- Uvicorn
-- SQLAlchemy
-- Alembic
-- psycopg (PostgreSQL driver)
-- Pydantic
+- FastAPI - Web framework
+- Uvicorn - ASGI server
+- SQLAlchemy - ORM (optional, for database features)
+- Alembic - Database migrations (optional)
+- psycopg - PostgreSQL driver (optional)
+- Pydantic - Data validation (used by @Contract decorator)
+
+**Note:** The FastAPI application can run without a database. Database dependencies are only needed if you use database features.
+
+**For FastAPI Integration:**
+- 📖 See **[docs/FASTAPI_INTEGRATION.md](docs/FASTAPI_INTEGRATION.md)** for complete integration guide
+- 🔧 Learn how to use `@Contract` decorator and `ContractMiddleware`
+- 🏢 Understand multi-tenant support and state machine integration
 
 ## Step 4: Set Up Database (Optional)
 
@@ -207,9 +214,10 @@ pip install PyYAML
 ## Next Steps
 
 - 📖 Read [docs/QUICKSTART.md](docs/QUICKSTART.md) for getting started
+- 🚀 **[docs/FASTAPI_INTEGRATION.md](docs/FASTAPI_INTEGRATION.md)** - Complete FastAPI integration guide (AI-friendly)
 - 📚 Check [docs/FEATURES.md](docs/FEATURES.md) for feature list
 - 🎯 Explore [examples/README.md](examples/README.md) for examples
-- 🚀 See [app/README.md](app/README.md) for FastAPI app details
+- 🔧 See [app/README.md](app/README.md) for FastAPI app details
 
 ## Installation Checklist
 

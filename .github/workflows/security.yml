@@ -60,12 +60,21 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
       
+      - name: Extract version from pyproject.toml
+        id: get_version_depscan
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION=$(grep -E '^version = ' pyproject.toml | sed -E 's/version = "(.+)"/\1/')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Extracted version: $VERSION"
+      
       - name: Build ranex_core
         working-directory: ${{ github.workspace }}
         shell: bash
         run: |
           set -euo pipefail
-          if [ -f "Cargo.toml" ] || [ -f "../Cargo.toml" ]; then
+          if [ -f "Cargo.toml" ]; then
             pip install --no-cache-dir maturin
             maturin build --release --out wheels
           else
@@ -77,8 +86,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          pip install --no-cache-dir wheels/ranex_core-0.0.1-*.whl || echo "⚠️ Wheel not found"
-          if [ -f "Cargo.toml" ] || [ -f "../Cargo.toml" ]; then
+          VERSION="${{ steps.get_version_depscan.outputs.version }}"
+          pip install --no-cache-dir wheels/ranex_core-${VERSION}-*.whl || echo "⚠️ Wheel not found"
+          if [ -f "Cargo.toml" ]; then
             pip install --no-cache-dir -e .
           else
             echo "⚠️ No Cargo.toml - installing CLI dependencies"
@@ -93,7 +103,7 @@ jobs:
         run: |
           set -euo pipefail
           export PYTHONPATH="${PYTHONPATH:-}:$PWD"
-          ranex scan || echo "Scan completed"
+          ranex scan
       
       - name: Check for known vulnerabilities (Python)
         working-directory: ${{ github.workspace }}
@@ -101,15 +111,15 @@ jobs:
         run: |
           set -euo pipefail
           pip install --no-cache-dir safety
-          safety check --file pyproject.toml || echo "⚠️ Some vulnerabilities found"
+          safety check --file pyproject.toml
       
       - name: Check for known vulnerabilities (Rust)
         working-directory: ${{ github.workspace }}
         shell: bash
         run: |
           set -euo pipefail
-          cargo install cargo-audit || true
-          cargo audit || echo "⚠️ Some vulnerabilities found"
+          cargo install cargo-audit
+          cargo audit
 
   # Code Security Scanning
   code-scan:
@@ -154,12 +164,21 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
       
+      - name: Extract version from pyproject.toml
+        id: get_version_codescan
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION=$(grep -E '^version = ' pyproject.toml | sed -E 's/version = "(.+)"/\1/')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Extracted version: $VERSION"
+      
       - name: Build ranex_core
         working-directory: ${{ github.workspace }}
         shell: bash
         run: |
           set -euo pipefail
-          if [ -f "Cargo.toml" ] || [ -f "../Cargo.toml" ]; then
+          if [ -f "Cargo.toml" ]; then
             pip install --no-cache-dir maturin
             maturin build --release --out wheels
           else
@@ -171,8 +190,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          pip install --no-cache-dir wheels/ranex_core-0.0.1-*.whl || echo "⚠️ Wheel not found"
-          if [ -f "Cargo.toml" ] || [ -f "../Cargo.toml" ]; then
+          VERSION="${{ steps.get_version_codescan.outputs.version }}"
+          pip install --no-cache-dir wheels/ranex_core-${VERSION}-*.whl || echo "⚠️ Wheel not found"
+          if [ -f "Cargo.toml" ]; then
             pip install --no-cache-dir -e .
           else
             echo "⚠️ No Cargo.toml - installing CLI dependencies"
@@ -199,7 +219,8 @@ jobs:
               print(f'⚠️ Security issues in {sys.argv[1]}')
               for v in result.violations:
                   print(f'  - {v.severity}: {v.message}')
-          " {} \; || echo "Security scan completed"
+              sys.exit(1)
+          " {} \;
 
   # SBOM Generation
   sbom:
@@ -247,7 +268,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ -f "Cargo.toml" ] || [ -f "../Cargo.toml" ]; then
+          if [ -f "Cargo.toml" ]; then
             echo "cargo_exists=true" >> $GITHUB_OUTPUT
           else
             echo "cargo_exists=false" >> $GITHUB_OUTPUT

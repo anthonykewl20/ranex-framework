@@ -139,8 +139,10 @@ jobs:
           else
             echo "⚠️ No Cargo.toml - installing CLI dependencies"
             pip install --no-cache-dir typer rich PyYAML
+            export PYTHONPATH="${PYTHONPATH:-}:$PWD"
+            echo "PYTHONPATH=$PYTHONPATH" >> $GITHUB_ENV
           fi
-          export PYTHONPATH=$PWD:$PYTHONPATH
+          export PYTHONPATH="${PYTHONPATH:-}:$PWD"
           
           # Test CLI
           ranex --help || exit 1

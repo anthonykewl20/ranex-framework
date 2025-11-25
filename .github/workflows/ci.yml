@@ -225,7 +225,8 @@ jobs:
             echo "⚠️ No Cargo.toml - installing CLI dependencies via setup.py instead"
             pip install --no-cache-dir typer rich PyYAML
             # Set PYTHONPATH so ranex module can be imported
-            echo "PYTHONPATH=$PWD" >> $GITHUB_ENV
+            export PYTHONPATH="${PYTHONPATH:-}:$PWD"
+            echo "PYTHONPATH=$PYTHONPATH" >> $GITHUB_ENV
           fi
           pip install --no-cache-dir -r app/requirements.txt || true
       
@@ -423,9 +424,11 @@ jobs:
           else
             echo "⚠️ No Cargo.toml - installing CLI dependencies"
             pip install --no-cache-dir typer rich PyYAML
-            export PYTHONPATH=$PWD:$PYTHONPATH
+            export PYTHONPATH="${PYTHONPATH:-}:$PWD"
+            echo "PYTHONPATH=$PYTHONPATH" >> $GITHUB_ENV
           fi
-          ranex --help || exit 1
+          export PYTHONPATH="${PYTHONPATH:-}:$PWD"
+          python3 -m ranex.cli --help || ranex --help || exit 1
 
   # Documentation Check
   docs:

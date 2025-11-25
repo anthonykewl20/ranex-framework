@@ -82,7 +82,8 @@ jobs:
           else
             echo "⚠️ No Cargo.toml - installing CLI dependencies"
             pip install --no-cache-dir typer rich PyYAML
-            echo "PYTHONPATH=$PWD" >> $GITHUB_ENV
+            export PYTHONPATH="${PYTHONPATH:-}:$PWD"
+            echo "PYTHONPATH=$PYTHONPATH" >> $GITHUB_ENV
           fi
       
       - name: Run dependency scan
@@ -174,7 +175,8 @@ jobs:
           else
             echo "⚠️ No Cargo.toml - installing CLI dependencies"
             pip install --no-cache-dir typer rich PyYAML
-            echo "PYTHONPATH=$PWD" >> $GITHUB_ENV
+            export PYTHONPATH="${PYTHONPATH:-}:$PWD"
+            echo "PYTHONPATH=$PYTHONPATH" >> $GITHUB_ENV
           fi
       
       - name: Run security scan on codebase

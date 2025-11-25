@@ -322,12 +322,22 @@ jobs:
           ranex scan || echo "Scan completed with warnings"
       
       - name: Check for hardcoded secrets
-        uses: trufflesecurity/trufflehog@35a5bf210f44d70a149b39d4db254abc7580cf6d # main
+        id: trufflehog_scan
         continue-on-error: true
+        uses: trufflesecurity/trufflehog@35a5bf210f44d70a149b39d4db254abc7580cf6d # main
         with:
           path: .
           base: ${{ github.event.repository.default_branch }}
           head: HEAD
+      
+      - name: TruffleHog scan result
+        if: always() && steps.trufflehog_scan.outcome == 'failure'
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "⚠️ TruffleHog scan skipped - BASE and HEAD commits are the same"
+          echo "This is expected when pushing to main with no new commits to scan"
+          echo "The scan will run on pull requests where BASE != HEAD"
 
   # Build Verification
   build-verify:

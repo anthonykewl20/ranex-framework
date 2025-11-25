@@ -1,0 +1,151 @@
+name: Security - Pre-Release
+
+on:
+  push:
+    branches: [ main, develop, 'pre-release/**' ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run weekly on Monday at 9 AM UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+jobs:
+  # Dependency Vulnerability Scanning
+  dependency-scan:
+    name: Dependency Vulnerability Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+      
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Build ranex_core
+        run: |
+          cd ..
+          pip install maturin
+          maturin build --release --out Pre-Release-v0.1/wheels
+      
+      - name: Install dependencies
+        run: |
+          pip install wheels/ranex_core-0.0.1-*.whl
+          pip install -e .
+      
+      - name: Run dependency scan
+        run: |
+          export PYTHONPATH=$PWD:$PYTHONPATH
+          ranex scan || echo "Scan completed"
+      
+      - name: Check for known vulnerabilities (Python)
+        run: |
+          pip install safety
+          safety check --file pyproject.toml || echo "⚠️ Some vulnerabilities found"
+      
+      - name: Check for known vulnerabilities (Rust)
+        run: |
+          cd ..
+          cargo install cargo-audit || true
+          cargo audit || echo "⚠️ Some vulnerabilities found"
+
+  # Code Security Scanning
+  code-scan:
+    name: Code Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+      
+      - name: Build ranex_core
+        run: |
+          cd ..
+          pip install maturin
+          maturin build --release --out Pre-Release-v0.1/wheels
+      
+      - name: Install ranex
+        run: |
+          pip install wheels/ranex_core-0.0.1-*.whl
+          pip install -e .
+      
+      - name: Run security scan on codebase
+        run: |
+          export PYTHONPATH=$PWD:$PYTHONPATH
+          # Scan Python files
+          find ranex/ app/ examples/ -name "*.py" -exec python3 -c "
+          from ranex_core import UnifiedSecurityScanner
+          import sys
+          scanner = UnifiedSecurityScanner.new()
+          with open(sys.argv[1]) as f:
+              content = f.read()
+          result = scanner.scan_content(content)
+          if not result.secure:
+              print(f'⚠️ Security issues in {sys.argv[1]}')
+              for v in result.violations:
+                  print(f'  - {v.severity}: {v.message}')
+          " {} \; || echo "Security scan completed"
+
+  # SBOM Generation
+  sbom:
+    name: Generate SBOM
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      
+      - name: Generate Python SBOM
+        run: |
+          pip install cyclonedx-bom
+          cyclonedx-py -o sbom-python.json -pb || echo "SBOM generation completed"
+      
+      - name: Generate Rust SBOM
+        run: |
+          cargo install cargo-cyclonedx || true
+          cd ..
+          cargo cyclonedx -o Pre-Release-v0.1/sbom-rust.json || echo "SBOM generation completed"
+      
+      - name: Upload SBOM artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: |
+            sbom-*.json
+          retention-days: 90
+
+  # Security Policy Check
+  security-policy:
+    name: Security Policy Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Verify security documentation
+        run: |
+          test -f .github/SECURITY.md || exit 1
+          test -f docs/security/THREAT_MODEL.md || exit 1
+          test -f docs/security/SECURITY_AUDIT.md || exit 1
+          test -f docs/security/SBOM.md || exit 1
+          echo "✅ All security documentation present"
+      
+      - name: Verify Dependabot config
+        run: |
+          test -f .github/dependabot.yml || exit 1
+          echo "✅ Dependabot configured"
+

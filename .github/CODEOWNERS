@@ -1,0 +1,38 @@
+# Code Owners for Ranex Framework
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Security-related files require security team review
+/docs/security/ @ranex-team/security
+/.github/SECURITY.md @ranex-team/security
+/.github/dependabot.yml @ranex-team/security
+
+# Core Rust code requires core team review
+/src/ @ranex-team/core
+/Cargo.toml @ranex-team/core
+/Cargo.lock @ranex-team/core
+
+# Python bindings and CLI
+/ranex/ @ranex-team/python
+/pyproject.toml @ranex-team/python
+/setup.py @ranex-team/python
+
+# FastAPI application
+/app/ @ranex-team/app
+
+# Documentation
+/docs/ @ranex-team/docs
+/README.md @ranex-team/docs
+/CHANGELOG.md @ranex-team/docs
+
+# Examples and tests
+/examples/ @ranex-team/examples
+/tests/ @ranex-team/tests
+
+# Build and release
+/maturin.toml @ranex-team/core
+/wheels/ @ranex-team/core
+/bin/ @ranex-team/core
+
+# Default owners for everything else
+* @ranex-team/maintainers
+

@@ -100,9 +100,24 @@ See `examples/` directory for 19 demo scripts:
 - `TEST_REPORT.md` - Test results and verification
 - `BUILD_INSTRUCTIONS.md` - How to build wheels
 - `docs/setup/MCP_SETUP.md` - MCP server setup
-- `docs/QUICKSTART.md` - Getting started guide (coming soon)
-- `docs/FEATURES.md` - Complete feature list (coming soon)
-- `docs/API_REFERENCE.md` - API documentation (coming soon)
+- `docs/QUICKSTART.md` - Getting started guide
+- `docs/FEATURES.md` - Complete feature list
+- `docs/API_REFERENCE.md` - API documentation
+
+## Security
+
+- `docs/security/THREAT_MODEL.md` - Threat model and security analysis
+- `docs/security/SECURITY_AUDIT.md` - Security audit report
+- `docs/security/SBOM.md` - Software Bill of Materials
+- `.github/SECURITY.md` - Security policy and vulnerability reporting
+- `.github/dependabot.yml` - Automated dependency updates
+
+## CI/CD
+
+- `.github/workflows/ci.yml` - Continuous Integration pipeline
+- `.github/workflows/security.yml` - Security scanning pipeline
+- `.github/workflows/release-check.yml` - Pre-release validation
+- `docs/CI_CD.md` - CI/CD documentation
 
 ## Building Wheels
 

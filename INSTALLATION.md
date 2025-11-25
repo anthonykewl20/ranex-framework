@@ -7,6 +7,7 @@ Complete installation guide for Ranex Framework Pre-Release v0.0.1.
 - **Python:** 3.12 or higher
 - **pip:** Python package manager
 - **Platform:** Linux x86_64 (for included wheel)
+- **GLIBC:** 2.34 or higher (Linux x86_64)
 - **Optional:** PostgreSQL (for database features)
 
 ## Step 1: Install Ranex Core

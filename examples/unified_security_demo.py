@@ -13,7 +13,8 @@ Run: python examples/unified_security_demo.py
 
 import os
 import tempfile
-from ranex_core import UnifiedSecurityScanner, SecurityScanner, AntipatternDetector, DependencyScannerOSV
+# Note: SecurityScanner is internal, not directly exposed
+from ranex_core import UnifiedSecurityScanner, AntipatternDetector, DependencyScannerOSV
 
 
 def demo_unified_security():
@@ -103,7 +104,8 @@ def process(items=[]): pass
     
     # SAST scanner
     print("SAST Scanner:")
-    sast_scanner = SecurityScanner()
+    # SecurityScanner is internal - UnifiedSecurityScanner includes SAST scanning
+    # sast_scanner = SecurityScanner()  # Not available - use UnifiedSecurityScanner instead
     sast_violations = sast_scanner.scan_content(test_code)
     print(f"  Violations: {len(sast_violations)}")
     for v in sast_violations:

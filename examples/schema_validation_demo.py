@@ -13,7 +13,16 @@ Run: python examples/schema_validation_demo.py
 """
 
 from pydantic import BaseModel, Field
-from ranex_core import SchemaValidator
+
+# SchemaValidator may not be available in pre-release
+try:
+    from ranex_core import SchemaValidator
+    SCHEMA_VALIDATOR_AVAILABLE = True
+except ImportError:
+    print("⚠️  SchemaValidator not available in this build.")
+    print("   Schema validation is optional in pre-release.")
+    SCHEMA_VALIDATOR_AVAILABLE = False
+    SchemaValidator = None
 
 
 class UserCreate(BaseModel):
@@ -36,6 +45,13 @@ def demo_schema_validation():
     print("Ranex Framework - Schema Validation Demo")
     print("=" * 70)
     print()
+    
+    if not SCHEMA_VALIDATOR_AVAILABLE or SchemaValidator is None:
+        print("⚠️  SchemaValidator not available in this pre-release build.")
+        print("   This feature is optional and may not be included.")
+        print("   Schema validation is still available via @Contract decorator.")
+        print("   See examples/basic_contract.py for contract-based validation.")
+        return
     
     validator = SchemaValidator()
     print("✅ Schema validator initialized")

@@ -45,11 +45,14 @@ async def process_payment(ctx, amount: float):
 
 **Usage:**
 ```python
-from ranex_core import SecurityScanner
+from ranex_core import UnifiedSecurityScanner
 
-scanner = SecurityScanner()
+scanner = UnifiedSecurityScanner.new()
 results = scanner.scan_content(code)
+# UnifiedSecurityScanner includes SAST scanning
 ```
+
+**Note:** `SecurityScanner` is internal. Use `UnifiedSecurityScanner` for security scanning.
 
 **See:** `examples/security_scan_demo.py`
 
@@ -107,8 +110,9 @@ results = scanner.scan_project(project_path)
 ```python
 from ranex_core import UnifiedSecurityScanner
 
-scanner = UnifiedSecurityScanner()
+scanner = UnifiedSecurityScanner.new()
 results = scanner.scan_content(code)
+# UnifiedSecurityScanner includes SAST scanning capabilities
 ```
 
 **See:** `examples/unified_security_demo.py`
@@ -234,12 +238,18 @@ result = provider.validate_query(sql_query)
 
 **Usage:**
 ```python
-from ranex_core import SchemaValidator
-
-validator = SchemaValidator()
-validator.register_schema("user", schema_dict)
-result = validator.validate("user", data)
+try:
+    from ranex_core import SchemaValidator
+    validator = SchemaValidator()
+    validator.register_schema("user", schema_dict)
+    result = validator.validate("user", data)
+except ImportError:
+    # SchemaValidator optional - use @Contract decorator instead
+    from ranex import Contract
+    # Schema validation via @Contract(input_schema=...)
 ```
+
+**Note:** SchemaValidator may not be available in pre-release. Use `@Contract` decorator with `input_schema` parameter for schema validation.
 
 **See:** `examples/schema_validation_demo.py`
 

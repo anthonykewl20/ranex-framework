@@ -15,7 +15,14 @@ Run: python examples/security_scan_demo.py
 
 import tempfile
 import os
-from ranex_core import SecurityScanner
+
+# Note: SecurityScanner is internal. Use UnifiedSecurityScanner instead.
+try:
+    from ranex_core import UnifiedSecurityScanner
+    SECURITY_SCANNER_AVAILABLE = True
+except ImportError:
+    print("⚠️  UnifiedSecurityScanner not available. Using fallback demonstration.")
+    SECURITY_SCANNER_AVAILABLE = False
 
 
 def demo_security_scanning():
@@ -25,9 +32,14 @@ def demo_security_scanning():
     print("=" * 70)
     print()
     
-    scanner = SecurityScanner()
+    if not SECURITY_SCANNER_AVAILABLE:
+        print("⚠️  Security scanning not available in this build.")
+        print("   This demo requires UnifiedSecurityScanner.")
+        print("   See examples/unified_security_demo.py for working example.")
+        return
+    
+    scanner = UnifiedSecurityScanner.new()
     print(f"✅ Security scanner initialized")
-    print(f"   Patterns loaded: {scanner.get_pattern_count()}")
     print()
     
     # Demo 1: Hardcoded secrets
@@ -44,13 +56,20 @@ import os
 api_key = os.getenv("API_KEY")
 """
     
-    violations = scanner.scan_content(vulnerable_code_1)
+    result = scanner.scan_content(vulnerable_code_1)
+    violations = result.violations if hasattr(result, 'violations') else []
     print(f"Found {len(violations)} security violations:")
     for v in violations:
-        print(f"  [{v.severity.upper()}] {v.category}")
-        print(f"    Line {v.line}: {v.code.strip()}")
-        print(f"    Issue: {v.message}")
-        print(f"    Fix: {v.fix_suggestion}")
+        severity = getattr(v, 'severity', 'unknown')
+        category = getattr(v, 'category', 'unknown')
+        line = getattr(v, 'line', 0)
+        code = getattr(v, 'code', '').strip()
+        message = getattr(v, 'message', 'Security issue detected')
+        fix = getattr(v, 'fix_suggestion', 'Review code')
+        print(f"  [{severity.upper()}] {category}")
+        print(f"    Line {line}: {code}")
+        print(f"    Issue: {message}")
+        print(f"    Fix: {fix}")
         print()
     print()
     
@@ -69,13 +88,20 @@ def get_user(user_id):
     return execute_query(query, (user_id,))
 """
     
-    violations = scanner.scan_content(vulnerable_code_2)
+    result = scanner.scan_content(vulnerable_code_2)
+    violations = result.violations if hasattr(result, 'violations') else []
     print(f"Found {len(violations)} security violations:")
     for v in violations:
-        print(f"  [{v.severity.upper()}] {v.category}")
-        print(f"    Line {v.line}: {v.code.strip()}")
-        print(f"    Issue: {v.message}")
-        print(f"    Fix: {v.fix_suggestion}")
+        severity = getattr(v, 'severity', 'unknown')
+        category = getattr(v, 'category', 'unknown')
+        line = getattr(v, 'line', 0)
+        code = getattr(v, 'code', '').strip()
+        message = getattr(v, 'message', 'Security issue detected')
+        fix = getattr(v, 'fix_suggestion', 'Review code')
+        print(f"  [{severity.upper()}] {category}")
+        print(f"    Line {line}: {code}")
+        print(f"    Issue: {message}")
+        print(f"    Fix: {fix}")
         print()
     print()
     
@@ -99,13 +125,20 @@ def search():
     return f"<h1>Search results for: {escape(query)}</h1>"
 """
     
-    violations = scanner.scan_content(vulnerable_code_3)
+    result = scanner.scan_content(vulnerable_code_3)
+    violations = result.violations if hasattr(result, 'violations') else []
     print(f"Found {len(violations)} security violations:")
     for v in violations:
-        print(f"  [{v.severity.upper()}] {v.category}")
-        print(f"    Line {v.line}: {v.code.strip()}")
-        print(f"    Issue: {v.message}")
-        print(f"    Fix: {v.fix_suggestion}")
+        severity = getattr(v, 'severity', 'unknown')
+        category = getattr(v, 'category', 'unknown')
+        line = getattr(v, 'line', 0)
+        code = getattr(v, 'code', '').strip()
+        message = getattr(v, 'message', 'Security issue detected')
+        fix = getattr(v, 'fix_suggestion', 'Review code')
+        print(f"  [{severity.upper()}] {category}")
+        print(f"    Line {line}: {code}")
+        print(f"    Issue: {message}")
+        print(f"    Fix: {fix}")
         print()
     print()
     
@@ -127,13 +160,20 @@ def load_data(file_path):
         return json.load(f)
 """
     
-    violations = scanner.scan_content(vulnerable_code_4)
+    result = scanner.scan_content(vulnerable_code_4)
+    violations = result.violations if hasattr(result, 'violations') else []
     print(f"Found {len(violations)} security violations:")
     for v in violations:
-        print(f"  [{v.severity.upper()}] {v.category}")
-        print(f"    Line {v.line}: {v.code.strip()}")
-        print(f"    Issue: {v.message}")
-        print(f"    Fix: {v.fix_suggestion}")
+        severity = getattr(v, 'severity', 'unknown')
+        category = getattr(v, 'category', 'unknown')
+        line = getattr(v, 'line', 0)
+        code = getattr(v, 'code', '').strip()
+        message = getattr(v, 'message', 'Security issue detected')
+        fix = getattr(v, 'fix_suggestion', 'Review code')
+        print(f"  [{severity.upper()}] {category}")
+        print(f"    Line {line}: {code}")
+        print(f"    Issue: {message}")
+        print(f"    Fix: {fix}")
         print()
     print()
     
@@ -151,15 +191,18 @@ def get_user(user_id: int):
     return db.execute(query, {"user_id": user_id})
 """
     
-    is_secure = scanner.is_secure(secure_code)
-    violations = scanner.scan_content(secure_code)
+    result = scanner.scan_content(secure_code)
+    violations = result.violations if hasattr(result, 'violations') else []
     
-    if is_secure and len(violations) == 0:
+    if len(violations) == 0:
         print("✅ Code is secure - no violations detected")
     else:
         print(f"⚠️  Found {len(violations)} violations")
         for v in violations:
-            print(f"  [{v.severity.upper()}] {v.category}: {v.message}")
+            severity = getattr(v, 'severity', 'unknown')
+            category = getattr(v, 'category', 'unknown')
+            message = getattr(v, 'message', 'Security issue detected')
+            print(f"  [{severity.upper()}] {category}: {message}")
     print()
     
     # Demo 6: File scanning
@@ -173,14 +216,20 @@ def get_user(user_id: int):
     try:
         result = scanner.scan_file(temp_file)
         print(f"Scanned file: {temp_file}")
-        print(f"Secure: {result.secure}")
-        print(f"Violations: {len(result.violations)}")
-        print(f"Scan time: {result.scan_time_ms}ms")
+        secure = getattr(result, 'secure', True)
+        violations = getattr(result, 'violations', [])
+        scan_time = getattr(result, 'scan_time_ms', 0)
+        print(f"Secure: {secure}")
+        print(f"Violations: {len(violations)}")
+        print(f"Scan time: {scan_time}ms")
         
-        if result.violations:
+        if violations:
             print("\nViolations found:")
-            for v in result.violations:
-                print(f"  [{v.severity.upper()}] Line {v.line}: {v.message}")
+            for v in violations:
+                severity = getattr(v, 'severity', 'unknown')
+                line = getattr(v, 'line', 0)
+                message = getattr(v, 'message', 'Security issue detected')
+                print(f"  [{severity.upper()}] Line {line}: {message}")
     except Exception as e:
         print(f"⚠️  File scanning error: {e}")
     finally:

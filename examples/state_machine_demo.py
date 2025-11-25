@@ -19,23 +19,23 @@ from ranex_core import StateMachine
 # ============================================================================
 # State Machine Definition
 # ============================================================================
-# Create app/features/order/state.yaml:
+# Uses app/features/payment/state.yaml:
 """
 states:
-  - Created
+  - Idle
+  - Processing
   - Paid
-  - Shipped
-  - Delivered
-  - Cancelled
+  - Failed
+  - Refunding
+  - Refunded
 
-initial_state: Created
+initial_state: Idle
 
 transitions:
-  Created: [Paid, Cancelled]
-  Paid: [Shipped, Cancelled]
-  Shipped: [Delivered]
-  Delivered: []
-  Cancelled: []
+  Idle: [Processing]
+  Processing: [Paid, Failed]
+  Paid: [Refunding]
+  Refunding: [Refunded]
 """
 
 
@@ -47,8 +47,8 @@ async def demo_state_machine():
     print()
     
     # Create state machine instance
-    print("📦 Creating state machine for 'order' feature...")
-    sm = StateMachine("order")
+    print("📦 Creating state machine for 'payment' feature...")
+    sm = StateMachine("payment")
     print(f"✅ State machine created")
     print(f"   Initial state: {sm.current_state}")
     print()
@@ -58,9 +58,10 @@ async def demo_state_machine():
     print("-" * 70)
     
     transitions = [
-        ("Created", "Paid"),
-        ("Paid", "Shipped"),
-        ("Shipped", "Delivered"),
+        ("Idle", "Processing"),
+        ("Processing", "Paid"),
+        ("Paid", "Refunding"),
+        ("Refunding", "Refunded"),
     ]
     
     for from_state, to_state in transitions:
@@ -77,11 +78,11 @@ async def demo_state_machine():
     print("-" * 70)
     
     invalid_transitions = [
-        ("Created", "Shipped"),      # Cannot skip Paid
-        ("Created", "Delivered"),     # Cannot skip Paid and Shipped
-        ("Paid", "Created"),          # Cannot go backwards
-        ("Delivered", "Shipped"),     # Cannot go backwards
-        ("Cancelled", "Paid"),        # Cannot resume from Cancelled
+        ("Idle", "Paid"),            # Cannot skip Processing
+        ("Idle", "Refunded"),         # Cannot skip Processing and Paid
+        ("Processing", "Idle"),       # Cannot go backwards
+        ("Paid", "Processing"),       # Cannot go backwards
+        ("Refunded", "Paid"),         # Cannot resume from Refunded
     ]
     
     for from_state, to_state in invalid_transitions:
@@ -109,15 +110,17 @@ async def demo_state_machine():
     print("-" * 70)
     print("Each tenant has isolated state machines:")
     
-    tenant1_sm = StateMachine("order")  # Tenant 1
-    tenant2_sm = StateMachine("order")  # Tenant 2
+    tenant1_sm = StateMachine("payment")  # Tenant 1
+    tenant2_sm = StateMachine("payment")  # Tenant 2
     
     # Tenant 1 transitions
+    tenant1_sm.transition("Processing")
     tenant1_sm.transition("Paid")
     print(f"Tenant 1 state: {tenant1_sm.current_state}")
     
     # Tenant 2 transitions independently
-    tenant2_sm.transition("Cancelled")
+    tenant2_sm.transition("Processing")
+    tenant2_sm.transition("Failed")
     print(f"Tenant 2 state: {tenant2_sm.current_state}")
     
     print("✅ Tenants have isolated state machines")

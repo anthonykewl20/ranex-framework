@@ -23,18 +23,20 @@ from ranex import Contract
 # Create app/features/payment/state.yaml:
 """
 states:
-  - Pending
+  - Idle
   - Processing
-  - Completed
+  - Paid
   - Failed
+  - Refunding
+  - Refunded
 
-initial_state: Pending
+initial_state: Idle
 
 transitions:
-  Pending: [Processing]
-  Processing: [Completed, Failed]
-  Completed: []
-  Failed: [Pending]  # Allow retry
+  Idle: [Processing]
+  Processing: [Paid, Failed]
+  Paid: [Refunding]
+  Refunding: [Refunded]
 """
 
 
@@ -86,9 +88,9 @@ async def process_payment(_ctx, request: PaymentRequest):
     # Simulate processing delay
     await asyncio.sleep(0.1)
     
-    # Transition to Completed state
-    _ctx.transition("Completed")
-    print(f"✅ State transitioned to: Completed")
+    # Transition to Paid state (payment state machine uses "Paid" not "Completed")
+    _ctx.transition("Paid")
+    print(f"✅ State transitioned to: Paid")
     
     return {
         "status": "success",
@@ -115,7 +117,7 @@ async def process_payment_with_error(_ctx, request: PaymentRequest):
     raise ValueError("Payment gateway unavailable")
     
     # This line never executes (state already rolled back)
-    _ctx.transition("Completed")
+    _ctx.transition("Paid")
 
 
 # ============================================================================

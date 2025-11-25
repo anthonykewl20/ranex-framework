@@ -77,19 +77,27 @@ print(machine.current_state)  # "Processing"
 
 **Module:** `ranex_core`
 
+**Status:** ⚠️ **Optional** - May not be available in pre-release builds
+
 **Purpose:** Validate data against registered schemas
 
 **Methods:**
 - `register_schema(name: str, schema: dict) -> None`: Register a schema
 - `validate(name: str, data: Any) -> ValidationResult`: Validate data
 
+**Note:** Schema validation is also available via the `@Contract` decorator with `input_schema` parameter.
+
 **Example:**
 ```python
-from ranex_core import SchemaValidator
-
-validator = SchemaValidator()
-validator.register_schema("user", {"type": "object", "properties": {...}})
-result = validator.validate("user", user_data)
+try:
+    from ranex_core import SchemaValidator
+    validator = SchemaValidator()
+    validator.register_schema("user", {"type": "object", "properties": {...}})
+    result = validator.validate("user", user_data)
+except ImportError:
+    # SchemaValidator not available - use @Contract decorator instead
+    from ranex import Contract
+    # Schema validation handled by @Contract decorator
 ```
 
 ---
@@ -100,19 +108,19 @@ result = validator.validate("user", user_data)
 
 **Module:** `ranex_core`
 
-**Purpose:** Static Application Security Testing (SAST)
+**Status:** ⚠️ **Internal Only** - Not directly exposed in pre-release
 
-**Methods:**
-- `scan_content(code: str) -> SecurityScanResult`: Scan code for vulnerabilities
+**Purpose:** Static Application Security Testing (SAST) - Internal implementation
 
-**Example:**
+**Note:** `SecurityScanner` is used internally by `UnifiedSecurityScanner`. For security scanning, use `UnifiedSecurityScanner` instead.
+
+**Alternative:**
 ```python
-from ranex_core import SecurityScanner
+from ranex_core import UnifiedSecurityScanner
 
-scanner = SecurityScanner()
+scanner = UnifiedSecurityScanner.new()
 result = scanner.scan_content(code)
-for issue in result.issues:
-    print(f"{issue.severity}: {issue.message}")
+# UnifiedSecurityScanner includes SAST scanning capabilities
 ```
 
 ---

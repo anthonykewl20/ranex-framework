@@ -2,7 +2,7 @@
 # Note: In a real install, ranex_core is a compiled binary. 
 # For this prototype, we assume the rust module is available in the path.
 
-from ranex_core import StateMachine as RustMachine, SchemaValidator as RustSchemaValidator
+from ranex_core import StateMachine as RustMachine
 import functools
 import asyncio
 import logging
@@ -13,8 +13,15 @@ import contextvars
 # Initialize logger for Contract operations
 logger = logging.getLogger("ranex.contract")
 
-# Global schema validator instance
-_schema_validator = RustSchemaValidator()
+# Global schema validator instance (optional - schema validation disabled if not available)
+try:
+    from ranex_core import SchemaValidator as RustSchemaValidator
+    _schema_validator = RustSchemaValidator()
+    _schema_validation_available = True
+except ImportError:
+    _schema_validator = None
+    _schema_validation_available = False
+    logger.warning("SchemaValidator not available in ranex_core. Schema validation will be disabled.")
 
 
 def Contract(
@@ -55,22 +62,29 @@ def Contract(
         # Register schema if provided
         schema_name = None
         if input_schema is not None:
-            try:
-                # Get Pydantic model's JSON schema
-                if hasattr(input_schema, 'model_json_schema'):
-                    schema_dict = input_schema.model_json_schema()
-                    schema_name = f"{feature}_{func.__name__}"
-                    _schema_validator.register_schema(schema_name, schema_dict)
-                    logger.debug(
-                        f"Registered schema '{schema_name}' for {func.__name__}",
-                        extra={"schema_name": schema_name, "feature": feature}
-                    )
-            except Exception as e:
+            if not _schema_validation_available:
                 logger.warning(
-                    f"Failed to register schema for {func.__name__}: {e}",
-                    extra={"feature": feature, "error": str(e)},
-                    exc_info=True
+                    f"Schema validation requested but SchemaValidator not available. "
+                    f"Schema validation will be skipped for {func.__name__}",
+                    extra={"feature": feature}
                 )
+            else:
+                try:
+                    # Get Pydantic model's JSON schema
+                    if hasattr(input_schema, 'model_json_schema'):
+                        schema_dict = input_schema.model_json_schema()
+                        schema_name = f"{feature}_{func.__name__}"
+                        _schema_validator.register_schema(schema_name, schema_dict)
+                        logger.debug(
+                            f"Registered schema '{schema_name}' for {func.__name__}",
+                            extra={"schema_name": schema_name, "feature": feature}
+                        )
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to register schema for {func.__name__}: {e}",
+                        extra={"feature": feature, "error": str(e)},
+                        exc_info=True
+                    )
         is_async = asyncio.iscoroutinefunction(func)
         
         if is_async:
@@ -90,8 +104,8 @@ def Contract(
                 ctx = None
                 initial_state = None
                 try:
-                    # 1. Schema validation (if schema provided)
-                    if schema_name:
+                    # 1. Schema validation (if schema provided and available)
+                    if schema_name and _schema_validation_available:
                         # Find the first argument that matches the schema
                         for arg in args:
                             validation_result = _schema_validator.validate(schema_name, arg)
@@ -143,11 +157,14 @@ def Contract(
                             }
                         )
                     
-                    # 3. Inject Context into Function
-                    kwargs['_ctx'] = ctx
-                    
-                    # 4. Execute Logic
-                    result = await func(*args, **kwargs)
+                    # 3. Inject Context into Function as first positional argument
+                    # Check if _ctx is already in args or kwargs
+                    if '_ctx' not in kwargs:
+                        # Inject as first positional argument
+                        result = await func(ctx, *args, **kwargs)
+                    else:
+                        # Already provided, use as-is
+                        result = await func(*args, **kwargs)
                     
                     # Log successful completion
                     duration = time.time() - start_time
@@ -241,8 +258,8 @@ def Contract(
                 ctx = None
                 initial_state = None
                 try:
-                    # 1. Schema validation (if schema provided)
-                    if schema_name:
+                    # 1. Schema validation (if schema provided and available)
+                    if schema_name and _schema_validation_available:
                         # Find the first argument that matches the schema
                         for arg in args:
                             validation_result = _schema_validator.validate(schema_name, arg)
@@ -265,11 +282,14 @@ def Contract(
                     ctx = RustMachine(feature)
                     initial_state = ctx.current_state  # Track initial state for rollback
                     
-                    # 3. Inject Context into Function
-                    kwargs['_ctx'] = ctx
-                    
-                    # 4. Execute Logic
-                    result = func(*args, **kwargs)
+                    # 3. Inject Context into Function as first positional argument
+                    # Check if _ctx is already in args or kwargs
+                    if '_ctx' not in kwargs:
+                        # Inject as first positional argument
+                        result = func(ctx, *args, **kwargs)
+                    else:
+                        # Already provided, use as-is
+                        result = func(*args, **kwargs)
                     
                     # Log successful completion
                     duration = time.time() - start_time

@@ -63,6 +63,8 @@ def Contract(
 ) -> Callable
 ```
 
+**Note:** The `tenant_id` parameter exists in the actual implementation (line 24 in `ranex/__init__.py`).
+
 **What It Actually Does:**
 
 1. **Schema Registration** (if `input_schema` provided):
@@ -76,8 +78,9 @@ def Contract(
    - Tracks initial state for rollback on error
 
 3. **Context Injection**:
-   - Injects `ctx` (StateMachine instance) as **first positional argument** to decorated function
-   - Function signature must accept `ctx` as first parameter: `async def my_function(ctx, ...)`
+   - Injects `_ctx` (StateMachine instance) as **keyword argument** `kwargs['_ctx']`
+   - Function signature should accept `_ctx` as a parameter: `async def my_function(_ctx, ...)`
+   - Can be accepted as positional parameter (Python allows keyword args to be passed positionally)
 
 4. **Error Handling**:
    - On exception, attempts to rollback state to initial state
@@ -99,8 +102,9 @@ async def async_wrapper(*args, **kwargs):
     ctx = RustMachine(feature)  # Loads from app/features/{feature}/state.yaml
     initial_state = ctx.current_state
     
-    # 3. Inject ctx as first argument
-    result = await func(ctx, *args, **kwargs)  # ctx injected here
+    # 3. Inject ctx as keyword argument
+    kwargs['_ctx'] = ctx  # Injected as keyword argument (line 147)
+    result = await func(*args, **kwargs)  # _ctx accessible in function
     
     return result
 ```
@@ -172,19 +176,17 @@ async def dispatch(self, request: Request, call_next: Callable) -> Response:
 **Example Structure:**
 ```yaml
 # app/features/payment/state.yaml
+initial: Pending
+
 states:
-  - name: "Pending"
-  - name: "Processing"
-  - name: "Completed"
-  - name: "Failed"
+  - Pending
+  - Processing
+  - Completed
+  - Failed
 
 transitions:
-  - from: "Pending"
-    to: "Processing"
-  - from: "Processing"
-    to: "Completed"
-  - from: "Processing"
-    to: "Failed"
+  Pending: [Processing]
+  Processing: [Completed, Failed]
 ```
 
 **What Actually Happens:**
@@ -256,16 +258,16 @@ app/
 
 ```yaml
 # app/features/my_feature/state.yaml
+initial: Initial
+
 states:
-  - name: "Initial"
-  - name: "Processing"
-  - name: "Completed"
+  - Initial
+  - Processing
+  - Completed
 
 transitions:
-  - from: "Initial"
-    to: "Processing"
-  - from: "Processing"
-    to: "Completed"
+  Initial: [Processing]
+  Processing: [Completed]
 ```
 
 **Critical:** State machine file MUST exist at `app/features/{feature}/state.yaml` or `@Contract` will fail.
@@ -286,12 +288,12 @@ router = APIRouter()
 
 @router.post("/process")
 @Contract(feature="my_feature")
-async def process_item(ctx, item_id: str, request: Request):
+async def process_item(_ctx, item_id: str, request: Request):
     """
     Process an item with contract enforcement.
     
     Args:
-        ctx: StateMachine instance (injected by @Contract)
+        _ctx: StateMachine instance (injected by @Contract as keyword argument)
         item_id: Item identifier
         request: FastAPI Request (for tenant ID access)
     """
@@ -299,21 +301,21 @@ async def process_item(ctx, item_id: str, request: Request):
     tenant_id = get_tenant_id(request)
     
     # Transition state
-    await ctx.transition("Processing")
+    await _ctx.transition("Processing")
     
     # Business logic here
     result = {"item_id": item_id, "status": "processed"}
     
     # Transition to final state
-    await ctx.transition("Completed")
+    await _ctx.transition("Completed")
     
     return result
 ```
 
 **Critical Implementation Details:**
 
-1. **Function Signature:** `ctx` MUST be first parameter (injected by @Contract)
-2. **State Transitions:** Use `await ctx.transition(state_name)` for async functions
+1. **Function Signature:** `_ctx` parameter (injected as keyword argument `kwargs['_ctx']`)
+2. **State Transitions:** Use `await _ctx.transition(state_name)` for async functions, `_ctx.transition(state_name)` for sync
 3. **Tenant Access:** Use `get_tenant_id(request)` to get tenant ID from middleware
 4. **Feature Name:** Must match directory name in `app/features/{feature}/`
 
@@ -400,10 +402,10 @@ app.include_router(...)
 
 ```python
 @Contract(feature="payment")
-async def process_payment(ctx, amount: float):
-    await ctx.transition("Processing")
+async def process_payment(_ctx, amount: float):
+    await _ctx.transition("Processing")
     # ... business logic
-    await ctx.transition("Completed")
+    await _ctx.transition("Completed")
     return {"status": "success"}
 ```
 
@@ -421,9 +423,9 @@ class PaymentRequest(BaseModel):
     input_schema=PaymentRequest,
     auto_validate=True
 )
-async def process_payment(ctx, request: PaymentRequest):
+async def process_payment(_ctx, request: PaymentRequest):
     # Schema validated automatically before function execution
-    await ctx.transition("Processing")
+    await _ctx.transition("Processing")
     # ... business logic
     return {"status": "success"}
 ```
@@ -434,9 +436,9 @@ async def process_payment(ctx, request: PaymentRequest):
 
 ```python
 @Contract(feature="payment", tenant_id="tenant_123")
-async def process_payment(ctx, amount: float):
+async def process_payment(_ctx, amount: float):
     # Uses explicit tenant_id instead of middleware
-    await ctx.transition("Processing")
+    await _ctx.transition("Processing")
     return {"status": "success"}
 ```
 
@@ -451,24 +453,24 @@ async def process_payment(ctx, amount: float):
 **Async Functions:**
 ```python
 @Contract(feature="payment")
-async def process_payment(ctx, amount: float):
+async def process_payment(_ctx, amount: float):
     # Get current state
-    current = ctx.current_state  # Returns string like "Pending"
+    current = _ctx.current_state  # Returns string like "Pending"
     
     # Transition to new state
-    await ctx.transition("Processing")  # Raises exception if transition not allowed
+    await _ctx.transition("Processing")  # Raises exception if transition not allowed
     
     # Transition to final state
-    await ctx.transition("Completed")
+    await _ctx.transition("Completed")
 ```
 
 **Sync Functions:**
 ```python
 @Contract(feature="payment")
-def process_payment(ctx, amount: float):
+def process_payment(_ctx, amount: float):
     # Sync transitions (no await)
-    ctx.transition("Processing")
-    ctx.transition("Completed")
+    _ctx.transition("Processing")
+    _ctx.transition("Completed")
 ```
 
 **Critical:** Transitions are validated against `state.yaml`. Invalid transitions raise exceptions.
@@ -481,24 +483,20 @@ def process_payment(ctx, amount: float):
 
 ```yaml
 # app/features/payment/state.yaml
+initial: Pending
+
 states:
-  - name: "Pending"
-  - name: "Processing"
-  - name: "Completed"
-  - name: "Failed"
-  - name: "Refunded"
+  - Pending
+  - Processing
+  - Completed
+  - Failed
+  - Refunded
 
 transitions:
-  - from: "Pending"
-    to: "Processing"
-  - from: "Processing"
-    to: "Completed"
-  - from: "Processing"
-    to: "Failed"
-  - from: "Completed"
-    to: "Refunded"
-  - from: "Failed"
-    to: "Refunded"
+  Pending: [Processing]
+  Processing: [Completed, Failed]
+  Completed: [Refunded]
+  Failed: [Refunded]
 ```
 
 **Validation Rules:**
@@ -528,18 +526,18 @@ transitions:
 **Actual Implementation:**
 
 ```python
-# From ranex/__init__.py, lines 129-158
+# From ranex/__init__.py, lines 115-132
 tenant_context = tenant_id
 if tenant_context is None:
     # Try to get from FastAPI request state
-    # (requires ContractMiddleware)
+    # (requires ContractMiddleware, but currently not implemented)
     pass
 
 state_key = f"{feature}:{tenant_context or 'default'}"
-ctx = RustMachine(feature)  # Creates isolated instance
+ctx = RustMachine(feature)  # Creates instance (tenant isolation via state_key in future)
 ```
 
-**Critical:** Tenant isolation is achieved through separate `RustMachine` instances, not through shared state with tenant keys.
+**Critical:** Currently, each function call creates a new `RustMachine` instance. Tenant isolation is planned but not fully implemented in the current version. The `state_key` is created for logging purposes.
 
 ---
 
@@ -550,7 +548,7 @@ from app.commons.contract_middleware import get_tenant_id
 
 @router.post("/process")
 @Contract(feature="payment")
-async def process_payment(ctx, amount: float, request: Request):
+async def process_payment(_ctx, amount: float, request: Request):
     tenant_id = get_tenant_id(request)  # Gets from request.state.tenant_id
     # Use tenant_id for business logic
     return {"tenant_id": tenant_id, "amount": amount}
@@ -573,13 +571,13 @@ async def process_payment(ctx, amount: float, request: Request):
 **Actual Code:**
 
 ```python
-# From ranex/__init__.py, lines 184-242
+# From ranex/__init__.py, lines 167-225
 except Exception as e:
     if ctx is not None and initial_state is not None:
         current_state = ctx.current_state
         if current_state != initial_state:
             try:
-                ctx.transition(initial_state)  # Rollback attempt
+                ctx.transition(initial_state)  # Rollback attempt (line 176)
                 logger.error("State rolled back", ...)
             except Exception as rollback_error:
                 logger.error("Rollback failed", ...)
@@ -594,16 +592,16 @@ except Exception as e:
 
 ```python
 @Contract(feature="payment")
-async def process_payment(ctx, amount: float):
+async def process_payment(_ctx, amount: float):
     try:
-        await ctx.transition("Processing")
+        await _ctx.transition("Processing")
         # Business logic that may fail
         result = await risky_operation()
-        await ctx.transition("Completed")
+        await _ctx.transition("Completed")
         return result
     except BusinessException as e:
         # Transition to error state if defined
-        await ctx.transition("Failed")
+        await _ctx.transition("Failed")
         raise HTTPException(status_code=400, detail=str(e))
 ```
 
@@ -632,19 +630,17 @@ app/
 ### State Machine (`app/features/payment/state.yaml`)
 
 ```yaml
+initial: Pending
+
 states:
-  - name: "Pending"
-  - name: "Processing"
-  - name: "Completed"
-  - name: "Failed"
+  - Pending
+  - Processing
+  - Completed
+  - Failed
 
 transitions:
-  - from: "Pending"
-    to: "Processing"
-  - from: "Processing"
-    to: "Completed"
-  - from: "Processing"
-    to: "Failed"
+  Pending: [Processing]
+  Processing: [Completed, Failed]
 ```
 
 ---
@@ -670,12 +666,12 @@ class PaymentRequest(BaseModel):
     input_schema=PaymentRequest,
     auto_validate=True
 )
-async def create_payment(ctx, request: PaymentRequest, http_request: Request):
+async def create_payment(_ctx, request: PaymentRequest, http_request: Request):
     """Create payment with contract enforcement."""
     tenant_id = get_tenant_id(http_request)
     
     # Transition to processing
-    await ctx.transition("Processing")
+    await _ctx.transition("Processing")
     
     try:
         # Business logic
@@ -686,13 +682,13 @@ async def create_payment(ctx, request: PaymentRequest, http_request: Request):
         )
         
         # Transition to completed
-        await ctx.transition("Completed")
+        await _ctx.transition("Completed")
         
         return result
     except Exception as e:
         # Transition to failed (if allowed)
         try:
-            await ctx.transition("Failed")
+            await _ctx.transition("Failed")
         except:
             pass  # Transition may not be allowed
         raise HTTPException(status_code=400, detail=str(e))
@@ -756,9 +752,9 @@ curl -X POST "http://localhost:8000/api/payment/pay" \
 **Returns:** Decorator function
 
 **Injected Context:**
-- `ctx: StateMachine` - Injected as first positional argument
-- Properties: `ctx.current_state` (str)
-- Methods: `await ctx.transition(state_name: str)` (async) or `ctx.transition(state_name: str)` (sync)
+- `_ctx: StateMachine` - Injected as keyword argument `kwargs['_ctx']` (can be accepted as positional parameter)
+- Properties: `_ctx.current_state` (str)
+- Methods: `await _ctx.transition(state_name: str)` (async) or `_ctx.transition(state_name: str)` (sync)
 
 ---
 

@@ -21,6 +21,26 @@ pip install wheels/ranex_core-0.0.1-cp312-cp312-linux_x86_64.whl
 
 See `wheels/INSTALL.md` for manual installation instructions.
 
+### Install CLI Dependencies
+
+**Option A: Install via setup.py (Recommended)**
+```bash
+pip install -e .
+```
+
+This installs all CLI dependencies and sets up the `ranex` command automatically.
+
+**Option B: Manual Installation**
+```bash
+pip install typer rich PyYAML
+```
+
+**Note:** The CLI dependencies are required for the `ranex` command-line tool:
+- `typer` and `rich` - For CLI functionality
+- `PyYAML` - Required for simulations and YAML file handling
+
+These are not included in the wheel package and must be installed separately.
+
 ### Verify Installation
 
 ```bash

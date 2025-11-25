@@ -396,92 +396,268 @@ cycles = detect_cycles(graph)
 
 ## CLI Commands
 
+Ranex Framework provides a comprehensive CLI tool with 15 commands. Use `ranex --help` to see all available commands.
+
 ### `ranex init`
 
-Initialize a new Ranex project.
+Initialize Ranex Governance in this repository.
 
 **Usage:**
 ```bash
 ranex init
 ```
 
+**Description:** Sets up the `.ranex/` directory structure and configuration files.
+
+**Health Checks:**
+The command performs health checks and may show warnings:
+- ⚠️ **MCP Server: NOT FOUND** - Optional, only needed for IDE integration
+- ⚠️ **FastAPI: NOT INSTALLED** - Optional, only needed for FastAPI app
+- ⚠️ **Missing directories** - Expected, will be created by init
+
+**Note:** The command will stop only on critical errors (missing Ranex Core or PyYAML). Warnings are informational.
+
 ---
 
 ### `ranex scan`
 
-Perform security scanning.
+Run the Ranex security & architecture scan.
 
 **Usage:**
 ```bash
-ranex scan [path]
+ranex scan
 ```
+
+**Description:** Performs comprehensive security scanning including SAST, dependency scanning, and architecture validation.
 
 ---
 
 ### `ranex arch`
 
-Check architecture compliance.
+Verify architectural layering between routes/service/models/commons.
 
 **Usage:**
 ```bash
 ranex arch
 ```
 
+**Description:** Checks that the codebase follows Ranex architecture rules and layer dependencies.
+
 ---
 
 ### `ranex task`
 
-Manage tasks and workflow.
+Manage the development workflow (start → design → build).
 
 **Usage:**
 ```bash
-ranex task start "feature_name"
-ranex task list
+ranex task <action> [name]
 ```
+
+**Actions:**
+- `start <feature_name>` - Start a new task/feature
+- `list` - List current tasks
+- `lock` - Lock current phase
+- `unlock` - Unlock current phase
+
+**Description:** Manages project phases (Requirements, Design, Implementation) and task tracking.
 
 ---
 
 ### `ranex verify`
 
-Verify project compliance.
+Execute 'Holodeck' simulation (live server test) or preview scenario.
 
 **Usage:**
 ```bash
-ranex verify
+ranex verify [scenario]
+ranex verify --auto
+ranex verify --preview
+ranex verify --port 8001
 ```
+
+**Options:**
+- `--auto` - Run the simulation linked to current task
+- `--preview` - Preview only, don't execute
+- `--port <port>` - Port for test server (default: 8001)
+
+**Description:** Runs contract verification and simulation tests.
 
 ---
 
 ### `ranex db`
 
-Database operations.
+Database utilities for schema inspection, SQL validation, and Redis key inference.
 
 **Usage:**
 ```bash
-ranex db schema
-ranex db validate "SELECT * FROM users"
+ranex db <action> [options]
 ```
+
+**Actions:**
+- `inspect` - Inspect database schema
+- `check` - Validate SQL query
+
+**Options:**
+- `--query <sql>` - SQL query to validate
+- `--url <connection>` - Database connection string (sqlite://, postgres://, mysql://, redis://)
+
+**Description:** Provides database schema inspection and SQL validation utilities.
 
 ---
 
 ### `ranex graph`
 
-Generate dependency graph.
+Generate a Mermaid.js diagram of the current business logic.
 
 **Usage:**
 ```bash
 ranex graph
+ranex graph --feature <feature_name>
 ```
+
+**Options:**
+- `--feature <name>` - Specific feature to graph
+
+**Description:** Generates dependency graphs and architecture diagrams.
 
 ---
 
 ### `ranex fix`
 
-Auto-fix common issues.
+Auto-correct architectural violations (Quarantine illegal folders AND files).
 
 **Usage:**
 ```bash
 ranex fix
+```
+
+**Description:** Automatically fixes common architectural violations and structure issues.
+
+---
+
+### `ranex context`
+
+Generate the 'God Prompt' to align any AI with Ranex Architecture.
+
+**Usage:**
+```bash
+ranex context
+ranex context --output CONTEXT.md
+ranex context --feature <feature_name>
+ranex context --onboard
+```
+
+**Options:**
+- `--output <file>` - Save to file (e.g., CONTEXT.md)
+- `--feature <name>` - Append per-feature overrides to the system context
+- `--onboard` - Automate onboarding by writing docs/onboarding/CONTEXT*.md and checklist
+
+**Description:** Generates comprehensive context documentation for AI agents and developers.
+
+---
+
+### `ranex update-rules`
+
+Force-refresh the advanced AI governance rules file.
+
+**Usage:**
+```bash
+ranex update-rules
+```
+
+**Description:** Updates the `.windsurfrules` file with the latest Ranex governance rules.
+
+---
+
+### `ranex doctor`
+
+Check if the Ranex environment is healthy.
+
+**Usage:**
+```bash
+ranex doctor
+```
+
+**Description:** Diagnoses the Ranex installation and environment configuration.
+
+---
+
+### `ranex bench`
+
+Benchmark Atlas performance (old regex vs new graph-based).
+
+**Usage:**
+```bash
+ranex bench
+ranex bench --mode old
+ranex bench --mode new
+ranex bench --mode both
+```
+
+**Options:**
+- `--mode <mode>` - Which Atlas to benchmark: old, new, or both (default: both)
+
+**Description:** Performance benchmarking for semantic atlas implementations.
+
+---
+
+### `ranex stress`
+
+Run a logic gauntlet (matrix + speed run) against the Rust core.
+
+**Usage:**
+```bash
+ranex stress
+ranex stress --feature <feature_name>
+```
+
+**Options:**
+- `--feature <name>` - Feature to stress test (default: payment)
+
+**Description:** Runs comprehensive stress tests and logic validation.
+
+---
+
+### `ranex config`
+
+Manage Ranex configuration.
+
+**Usage:**
+```bash
+ranex config <command>
+```
+
+**Subcommands:**
+- `edit` - Open the architecture config in your editor
+- `validate` - Validate the dynamic architecture config for common mistakes
+
+**Description:** Configuration management for Ranex settings and architecture rules.
+
+---
+
+## Quick Reference
+
+**All Commands:**
+1. `ranex init` - Initialize project
+2. `ranex scan` - Security scanning
+3. `ranex arch` - Architecture checking
+4. `ranex task` - Task management
+5. `ranex verify` - Verification & simulation
+6. `ranex db` - Database operations
+7. `ranex graph` - Dependency graph generation
+8. `ranex fix` - Auto-fix issues
+9. `ranex context` - Generate AI context
+10. `ranex update-rules` - Update governance rules
+11. `ranex doctor` - Environment health check
+12. `ranex bench` - Performance benchmarking
+13. `ranex stress` - Stress testing
+14. `ranex config` - Configuration management
+
+**Get Help:**
+```bash
+ranex --help              # List all commands
+ranex <command> --help     # Get help for specific command
 ```
 
 ---

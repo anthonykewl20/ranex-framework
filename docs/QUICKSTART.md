@@ -19,10 +19,30 @@ pip install wheels/ranex_core-0.0.1-cp312-cp312-linux_x86_64.whl
 ```bash
 python3 -c "import ranex_core; print('✅ Ranex Core installed')"
 python3 -c "import ranex; print('✅ Ranex package installed')"
+```
+
+## Step 2: Install CLI Dependencies
+
+To use the `ranex` CLI command-line tool, install the required dependencies:
+
+```bash
+pip install typer rich PyYAML
+```
+
+**Note:** The CLI dependencies are required for the `ranex` command:
+- `typer` and `rich` - For CLI functionality
+- `PyYAML` - Required for simulations and YAML file handling
+
+These are not included in the wheel package and must be installed separately.
+
+**Verify CLI Installation:**
+```bash
 ranex --help
 ```
 
-## Step 2: Run Your First Example
+You should see the CLI help menu with all available commands.
+
+## Step 3: Run Your First Example
 
 Let's start with a simple contract example:
 
@@ -37,7 +57,7 @@ python3 basic_contract.py
 ✅ State machine transition successful
 ```
 
-## Step 3: Explore More Examples
+## Step 4: Explore More Examples
 
 See `examples/README.md` for a complete list of examples and what they demonstrate.
 
@@ -48,7 +68,7 @@ See `examples/README.md` for a complete list of examples and what they demonstra
 4. `security_scan_demo.py` - Security scanning
 5. `fastapi_contract_demo.py` - FastAPI integration
 
-## Step 4: Run the FastAPI Application
+## Step 5: Run the FastAPI Application
 
 ### Install Dependencies
 
@@ -85,7 +105,7 @@ Visit: http://localhost:8000
 - `GET /api/products` - Product endpoints
 - `GET /api/payment` - Payment endpoints
 
-## Step 5: Verify Everything Works
+## Step 6: Verify Everything Works
 
 Run the installation verification script:
 
@@ -121,6 +141,28 @@ python3 -c "import sys; print('\n'.join(sys.path))"
 1. Dependencies installed: `pip install -r app/requirements.txt`
 2. Database connection (if using DB): Check `DATABASE_URL` environment variable
 3. Port available: Try a different port `--port 8001`
+
+### CLI Command Not Found (`ranex: command not found`)
+
+**Solution:**
+```bash
+# Install CLI dependencies
+pip install typer rich PyYAML
+
+# Verify CLI works
+ranex --help
+```
+
+**Note:** The `ranex` CLI requires `typer`, `rich`, and `PyYAML` packages. These must be installed separately after installing the wheel.
+
+### PyYAML Missing (Required for simulations)
+
+**Solution:**
+```bash
+pip install PyYAML
+```
+
+**Note:** `PyYAML` is required for `ranex verify` simulations and YAML file handling. Install it along with other CLI dependencies.
 
 ### Examples Fail to Run
 

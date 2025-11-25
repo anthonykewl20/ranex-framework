@@ -915,8 +915,8 @@ def init() -> None:
     console.print("\n[bold]Step 1: System Health Check[/bold]")
     results = _comprehensive_health_check(verbose=True)
     
-    # Check for critical errors (aligned with SHIPPED package)
-    critical_checks = ["python", "ranex_core", "mcp_binary"]
+    # Check for critical errors (only Python and Ranex Core are critical)
+    critical_checks = ["python", "ranex_core"]
     critical_passed = sum(1 for check in critical_checks if results[check])
     
     if critical_passed < len(critical_checks):
@@ -925,7 +925,7 @@ def init() -> None:
         
         if not results["ranex_core"]:
             console.print("\n[bold]Install Ranex:[/bold]")
-            console.print("   pip install ranex-core")
+            console.print("   pip install wheels/ranex_core-0.0.1-*.whl")
         
         sys.exit(1)
     
@@ -967,10 +967,11 @@ def init() -> None:
     console.print("   1. Read docs/setup/MCP_SETUP.md for your IDE")
     console.print("   2. Configure MCP server (Windsurf, Cursor, or Claude Desktop)")
     
-    if not results["mcp_binary"]:
-        console.print("   3. [bold yellow]Build MCP server: cargo build --release --bin ranex_mcp[/bold yellow]")
+    if results.get("mcp_binary"):
+        console.print("   3. ✅ MCP server already available")
     else:
-        console.print("   3. ✅ MCP server already built")
+        console.print("   3. [bold yellow]MCP server not found (optional - only needed for IDE integration)[/bold yellow]")
+        console.print("      Location: bin/ranex_mcp (in shipped package)")
     
     console.print("   4. Restart your IDE to activate Ranex")
     
@@ -1028,28 +1029,67 @@ def _comprehensive_health_check(verbose: bool = True) -> dict:
             console.print("[red]❌ Ranex Core: NOT INSTALLED[/red]")
             console.print("   Install: pip install ranex-core")
     
-    # Check 3: MCP Binary (CRITICAL - pre-built in shipped package)
-    # Check multiple possible locations
+    # Check 3: MCP Binary (OPTIONAL - only needed for IDE integration)
+    # Check multiple possible locations (including project root)
+    cwd = os.getcwd()
+    # Try to find project root by looking for common markers (check up to 3 levels up)
+    project_root = cwd
+    markers = ["bin/ranex_mcp", ".ranex", "app/features", "ranex/cli.py"]
+    for marker in markers:
+        test_path = os.path.join(cwd, marker)
+        if os.path.exists(test_path):
+            project_root = cwd
+            break
+        # Check parent directories (up to 3 levels)
+        current = cwd
+        for _ in range(3):
+            parent = os.path.dirname(current)
+            if parent == current:
+                break
+            test_path = os.path.join(parent, marker)
+            if os.path.exists(test_path):
+                project_root = parent
+                break
+            current = parent
+        if project_root != cwd:
+            break
+    
     mcp_locations = [
-        os.path.join("target", "release", "ranex_mcp"),  # Dev environment
-        "ranex_mcp",  # Shipped package (in PATH or local)
+        os.path.join(project_root, "bin", "ranex_mcp"),  # Shipped package location (project root)
+        os.path.join("bin", "ranex_mcp"),  # Relative to current directory
+        os.path.join(project_root, "target", "release", "ranex_mcp"),  # Dev environment
+        "ranex_mcp",  # In PATH or local
         os.path.join(sys.prefix, "bin", "ranex_mcp"),  # Installed in venv
     ]
     
     mcp_found = False
+    mcp_path = None
     for mcp_binary in mcp_locations:
         if os.path.exists(mcp_binary) and os.access(mcp_binary, os.X_OK):
             results["mcp_binary"] = True
             mcp_found = True
+            mcp_path = mcp_binary
             if verbose:
-                console.print(f"[green]✅ MCP Server: {mcp_binary}[/green]")
+                # Show relative path if possible
+                try:
+                    rel_path = os.path.relpath(mcp_binary, cwd)
+                    if not rel_path.startswith(".."):
+                        console.print(f"[green]✅ MCP Server: {rel_path}[/green]")
+                    else:
+                        # Show path relative to project root
+                        rel_to_root = os.path.relpath(mcp_binary, project_root)
+                        console.print(f"[green]✅ MCP Server: {rel_to_root}[/green]")
+                except ValueError:
+                    console.print(f"[green]✅ MCP Server: {mcp_binary}[/green]")
             break
     
     if not mcp_found:
-        results["errors"].append("MCP server binary not found")
+        # MCP server is optional - only add to warnings, not errors
+        results["warnings"].append("MCP server binary not found (optional, only needed for IDE integration)")
         if verbose:
-            console.print("[red]❌ MCP Server: NOT FOUND[/red]")
-            console.print("   Expected in shipped package or run: cargo build --release --bin ranex_mcp")
+            console.print("[yellow]⚠️  MCP Server: NOT FOUND (optional)[/yellow]")
+            console.print("   Only needed for IDE integration (Windsurf, Cursor, Claude Desktop)")
+            console.print("   Location: bin/ranex_mcp (in shipped package)")
     
     # Check 4: PyYAML (CRITICAL for simulations)
     try:
@@ -1070,6 +1110,9 @@ def _comprehensive_health_check(verbose: bool = True) -> dict:
         "fastapi"
     ]
     
+    # Check if app/ folder exists (indicates FastAPI app is present)
+    app_folder_exists = os.path.exists("app") or os.path.exists(os.path.join(project_root, "app"))
+    
     for package in optional_packages:
         try:
             __import__(package.replace("-", "_"))
@@ -1077,7 +1120,12 @@ def _comprehensive_health_check(verbose: bool = True) -> dict:
         except ImportError:
             results["warnings"].append(f"Missing Python package: {package}")
             if verbose:
-                console.print(f"[yellow]⚠️  Package '{package}': NOT INSTALLED[/yellow]")
+                # Special message for FastAPI if app/ folder exists
+                if package == "fastapi" and app_folder_exists:
+                    console.print(f"[yellow]⚠️  Package '{package}': NOT INSTALLED[/yellow]")
+                    console.print(f"   FastAPI app detected in app/ folder. Install: pip install -r app/requirements.txt")
+                else:
+                    console.print(f"[yellow]⚠️  Package '{package}': NOT INSTALLED[/yellow]")
     
     if verbose and len(results["dependencies"]) == len(optional_packages):
         console.print(f"[green]✅ Python Dependencies: All {len(optional_packages)} installed[/green]")
@@ -1111,13 +1159,19 @@ def doctor() -> None:
     # Summary
     console.print("\n[bold]📊 Summary:[/bold]")
     
-    critical_checks = ["python", "ranex_core", "mcp_binary"]
+    critical_checks = ["python", "ranex_core"]
     critical_passed = sum(1 for check in critical_checks if results[check])
     
     if critical_passed == len(critical_checks):
         console.print(f"[green]✅ Critical: {critical_passed}/{len(critical_checks)} passed[/green]")
     else:
         console.print(f"[red]❌ Critical: {critical_passed}/{len(critical_checks)} passed[/red]")
+    
+    # Show MCP status separately (optional)
+    if results.get("mcp_binary"):
+        console.print("[green]✅ MCP Server: Available[/green]")
+    else:
+        console.print("[yellow]⚠️  MCP Server: Not found (optional, only needed for IDE integration)[/yellow]")
     
     if results["warnings"]:
         console.print(f"[yellow]⚠️  Warnings: {len(results['warnings'])}[/yellow]")

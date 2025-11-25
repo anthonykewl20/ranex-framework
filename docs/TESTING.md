@@ -11,12 +11,14 @@ This guide explains how to run tests for the Ranex Framework codebase.
 **Option A: Install in Development Mode (Recommended)**
 
 ```bash
-# Run the setup script
-./setup_dev.sh
+# Install ranex package with CLI dependencies
+pip install -e .
 ```
 
 This will:
-- Install `ranex_core` wheel
+- Install CLI dependencies (typer, rich, PyYAML)
+- Set up the `ranex` command
+- Install `ranex_core` wheel (if not already installed)
 - Install `ranex` package in development mode (editable install)
 - Verify everything works
 

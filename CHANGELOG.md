@@ -113,6 +113,33 @@ See [INSTALLATION.md](INSTALLATION.md) for complete installation instructions.
 
 ## [Unreleased]
 
+### Fixed
+- **Example Scripts:** Fixed path resolution issues - examples now work when run from any directory
+  - Added automatic project root detection to examples using StateMachine/Contract decorators
+  - Examples can now be run from `examples/` directory or project root
+- **LayerEnforcer:** Fixed instantiation method (changed `.new()` to direct constructor call)
+- **Optional Features:** Added graceful handling for missing optional features
+  - UnifiedSecurityScanner
+  - AntipatternDetector
+  - DependencyScannerOSV
+  - FFIValidator
+  - Examples now show informative messages instead of crashing when features are unavailable
+- **State Machine:** Fixed state.yaml format for payment feature (corrected transition syntax)
+- **Demo Feature:** Created missing demo feature with state.yaml for fastapi_middleware_demo.py
+
+### Changed
+- **Documentation:** Updated installation guides to include CLI dependencies
+  - Added explicit instructions to install `typer` and `rich` for CLI functionality
+  - Updated README.md, INSTALLATION.md, and QUICKSTART.md
+  - Added troubleshooting section for "CLI command not found" errors
+- **Setup:** Updated setup.py to include CLI dependencies (`typer`, `rich`) in install_requires
+  - Added console_scripts entry point for `ranex` command
+
+### Improved
+- **Examples:** All 19 example scripts now run successfully without errors
+- **Error Handling:** Better error messages and graceful degradation when optional features are missing
+- **Documentation:** More comprehensive installation instructions with troubleshooting
+
 ### Planned Features
 - Additional platform support (Windows, macOS)
 - More examples and tutorials

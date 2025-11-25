@@ -1,0 +1,5 @@
+scenario: "Verify test_feature"
+steps:
+  - step: "Health Check"
+    action: GET /
+    expect: 200

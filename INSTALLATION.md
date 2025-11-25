@@ -33,10 +33,30 @@ cp wheels/libranex_core.so $(python3 -c "import site; print(site.getsitepackages
 ```bash
 python3 -c "import ranex_core; print('✅ Ranex Core installed')"
 python3 -c "import ranex; print('✅ Ranex package installed')"
+```
+
+## Step 2: Install CLI Dependencies
+
+To use the `ranex` CLI command-line tool, install the required dependencies:
+
+```bash
+pip install typer rich PyYAML
+```
+
+**Note:** The CLI dependencies are required for the `ranex` command:
+- `typer` and `rich` - For CLI functionality
+- `PyYAML` - Required for simulations and YAML file handling
+
+These are not included in the wheel package and must be installed separately.
+
+**Verify CLI Installation:**
+```bash
 ranex --help
 ```
 
-## Step 2: Install FastAPI Dependencies
+You should see the CLI help menu with all available commands.
+
+## Step 3: Install FastAPI Dependencies
 
 If you plan to use the FastAPI application:
 
@@ -52,7 +72,7 @@ pip install -r app/requirements.txt
 - psycopg (PostgreSQL driver)
 - Pydantic
 
-## Step 3: Set Up Database (Optional)
+## Step 4: Set Up Database (Optional)
 
 The FastAPI app works without a database, but for full functionality:
 
@@ -72,7 +92,7 @@ echo "DATABASE_URL=postgresql://user:password@localhost:5432/ranex_db" > .env
 export DATABASE_URL="sqlite:///./app.db"
 ```
 
-## Step 4: Verify Installation
+## Step 5: Verify Installation
 
 Run the verification script:
 
@@ -88,7 +108,7 @@ scripts/verify_installation.sh
 ✅ All checks passed!
 ```
 
-## Step 5: Run Examples
+## Step 6: Run Examples
 
 Test the installation with examples:
 
@@ -99,7 +119,7 @@ python3 basic_contract.py
 
 See `examples/README.md` for a complete list of examples.
 
-## Step 6: Run FastAPI Application
+## Step 7: Run FastAPI Application
 
 ```bash
 cd Pre-Release-v0.1
@@ -112,6 +132,21 @@ Visit:
 - **Metrics:** http://localhost:8000/metrics
 
 ## Troubleshooting
+
+### `ranex init` Shows Warnings
+
+When running `ranex init`, you may see warnings that are expected:
+
+**Expected Warnings (Non-Critical):**
+- ⚠️ **MCP Server: NOT FOUND** - This is optional. MCP server is only needed for IDE integration (Windsurf, Cursor, Claude Desktop). The CLI works without it.
+- ⚠️ **Package 'fastapi': NOT INSTALLED** - This is optional. Only needed if you plan to use the FastAPI application.
+- ⚠️ **Project Structure: Missing directories** - This is expected when running `init` for the first time. The command will create these directories.
+
+**Critical Errors (Must Fix):**
+- ❌ **Ranex Core: NOT INSTALLED** - Install the wheel: `pip install wheels/ranex_core-0.0.1-*.whl`
+- ❌ **PyYAML: NOT INSTALLED** - Install: `pip install PyYAML`
+
+**Note:** The `ranex init` command will proceed even with warnings, but will stop on critical errors.
 
 ### Import Error: No module named 'ranex_core'
 
@@ -131,6 +166,28 @@ python3 -c "import ranex_core"
 1. Dependencies installed: `pip install -r app/requirements.txt`
 2. Database connection (if using DB): Check `DATABASE_URL` environment variable
 3. Port available: Try a different port `--port 8001`
+
+### CLI Command Not Found (`ranex: command not found`)
+
+**Solution:**
+```bash
+# Install CLI dependencies
+pip install typer rich PyYAML
+
+# Verify CLI works
+ranex --help
+```
+
+**Note:** The `ranex` CLI requires `typer`, `rich`, and `PyYAML` packages. These must be installed separately after installing the wheel.
+
+### PyYAML Missing (Required for simulations)
+
+**Solution:**
+```bash
+pip install PyYAML
+```
+
+**Note:** `PyYAML` is required for `ranex verify` simulations and YAML file handling. Install it along with other CLI dependencies.
 
 ### Examples Fail to Run
 
@@ -159,6 +216,8 @@ python3 -c "import ranex_core"
 - [ ] Python 3.12+ installed
 - [ ] Ranex Core wheel installed
 - [ ] Ranex package imports successfully
+- [ ] CLI dependencies installed (`typer`, `rich`)
+- [ ] CLI command works (`ranex --help`)
 - [ ] FastAPI dependencies installed (if using app)
 - [ ] Database configured (optional)
 - [ ] Verification script passes

@@ -423,15 +423,23 @@ app.add_middleware(ContractMiddleware, default_tenant="default")
 
 **Purpose:** Command-line interface for Ranex operations.
 
-**Commands:**
+**Commands (15 total):**
 - `ranex init` - Initialize project
 - `ranex scan` - Security scanning
 - `ranex arch` - Architecture checking
 - `ranex task` - Task management
-- `ranex verify` - Verification
+- `ranex verify` - Verification & simulation
 - `ranex db` - Database operations
-- `ranex graph` - Dependency graph
+- `ranex graph` - Dependency graph generation
 - `ranex fix` - Auto-fix issues
+- `ranex context` - Generate AI context
+- `ranex update-rules` - Update governance rules
+- `ranex doctor` - Environment health check
+- `ranex bench` - Performance benchmarking
+- `ranex stress` - Stress testing
+- `ranex config` - Configuration management
+
+**See:** [API_REFERENCE.md](API_REFERENCE.md#cli-commands) for complete CLI documentation
 
 **Usage:**
 ```bash

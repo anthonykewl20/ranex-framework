@@ -235,7 +235,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          export PYTHONPATH=$PWD:$PYTHONPATH
+          export PYTHONPATH="${PYTHONPATH:-}:$PWD"
           pytest tests/ -v --tb=short || echo "No tests found"
       
       - name: Run example scripts (integration tests)
@@ -243,7 +243,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          export PYTHONPATH=$PWD:$PYTHONPATH
+          export PYTHONPATH="${PYTHONPATH:-}:$PWD"
           cd examples
           for script in *.py; do
             echo "Testing $script..."
@@ -315,7 +315,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          export PYTHONPATH=$PWD:$PYTHONPATH
+          export PYTHONPATH="${PYTHONPATH:-}:$PWD"
           ranex scan || echo "Scan completed with warnings"
       
       - name: Check for hardcoded secrets

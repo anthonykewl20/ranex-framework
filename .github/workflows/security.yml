@@ -29,10 +29,9 @@ jobs:
       
       - name: Set up Python
         uses: actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d # v5.1.0
-        continue-on-error: true
         with:
           python-version: '3.12'
-          cache: 'pip'
+          # Note: cache disabled to avoid warnings - using explicit actions/cache instead
       
       - name: Cache pip dependencies
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4

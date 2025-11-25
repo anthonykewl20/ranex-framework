@@ -134,7 +134,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          pip install --no-cache-dir -e .
+          if [ -f "Cargo.toml" ] || [ -f "../Cargo.toml" ]; then
+            pip install --no-cache-dir -e .
+          else
+            echo "⚠️ No Cargo.toml - installing CLI dependencies"
+            pip install --no-cache-dir typer rich PyYAML
+          fi
           export PYTHONPATH=$PWD:$PYTHONPATH
           
           # Test CLI

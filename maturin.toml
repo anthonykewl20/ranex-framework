@@ -1,0 +1,42 @@
+# Maturin Build Configuration for Ranex v0.0.1
+# Bridges Rust Kernel to Python User Space
+
+[build]
+# Build the Python extension module
+binding = "pyo3"
+
+# Python source directory
+python-source = "app"
+
+# Module name (must match lib.name in Cargo.toml)
+module-name = "ranex_core"
+
+# Build in release mode by default for performance
+release = true
+
+# Strip debug symbols in release builds
+strip = true
+
+# Target Python 3.12+ with stable ABI
+compatibility = "linux"
+
+[target]
+# Optimize for native CPU features
+rustflags = ["-C", "target-cpu=native"]
+
+[features]
+# Default features
+default = ["extension-module"]
+
+# Extension module feature (required for Python bindings)
+extension-module = ["pyo3/extension-module"]
+
+# Development features
+dev = []
+
+[metadata]
+name = "ranex-core"
+version = "0.0.1"
+description = "Ranex Framework - Hybrid AI-Governance with Rust Core"
+author = "Ranex Team"
+license = "MIT"

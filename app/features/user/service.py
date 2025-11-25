@@ -4,8 +4,7 @@ from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException, status
 from typing import List, Optional
 
-from .models import User
-from .schemas import UserCreate, UserUpdate, UserResponse
+from .models import User, UserCreate, UserUpdate, UserResponse
 from app.commons.security import get_password_hash, verify_password
 
 

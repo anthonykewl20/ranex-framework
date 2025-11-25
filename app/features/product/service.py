@@ -4,8 +4,7 @@ from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException, status
 from typing import List, Optional
 
-from .models import Product
-from .schemas import ProductCreate, ProductUpdate
+from .models import Product, ProductCreate, ProductUpdate
 
 
 async def create_product(db: AsyncSession, product_data: ProductCreate) -> Product:

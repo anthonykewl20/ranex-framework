@@ -169,12 +169,23 @@ app.include_router(health_router)
 
 
 if __name__ == "__main__":
-    import uvicorn
-    print("Starting FastAPI server...")
-    print("Visit http://localhost:8000/docs for API documentation")
-    print("Health check: http://localhost:8000/health")
-    print("Metrics: http://localhost:8000/metrics")
-    print("Press Ctrl+C to stop")
-    print()
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    import sys
+    
+    # Check if --server flag is provided
+    if "--server" in sys.argv or "-s" in sys.argv:
+        # Start the server
+        import uvicorn
+        print("Starting FastAPI server...")
+        print("Visit http://localhost:8000/docs for API documentation")
+        print("Health check: http://localhost:8000/health")
+        print("Metrics: http://localhost:8000/metrics")
+        print("Press Ctrl+C to stop")
+        print()
+        uvicorn.run(app, host="0.0.0.0", port=8000)
+    else:
+        # Run demo by default
+        demo_fastapi_middleware()
+        print()
+        print("💡 Tip: Run with --server flag to start the server:")
+        print("   python3 fastapi_middleware_demo.py --server")
 

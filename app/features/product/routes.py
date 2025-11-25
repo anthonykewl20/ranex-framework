@@ -13,7 +13,7 @@ async def create_product(
     db: Any = Depends(get_db)
 ):
     """Create a new product"""
-    from .schemas import ProductCreate
+    from .models import ProductCreate
     validated_data = ProductCreate(**product_data)
     product = await service.create_product(db, validated_data)
     return product
@@ -58,7 +58,7 @@ async def update_product(
     db: Any = Depends(get_db)
 ):
     """Update product"""
-    from .schemas import ProductUpdate
+    from .models import ProductUpdate
     validated_data = ProductUpdate(**product_data)
     product = await service.update_product(db, product_id, validated_data)
     return product

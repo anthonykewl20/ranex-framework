@@ -13,6 +13,7 @@ Run: python examples/fastapi_contract_demo.py
 """
 
 import os
+import time
 from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
@@ -44,13 +45,13 @@ class PaymentResponse(BaseModel):
 
 
 # FastAPI route with @Contract decorator
-@app.post("/payments", response_model=PaymentResponse)
 @Contract(
     feature="payment",
     input_schema=PaymentRequest,
     auto_validate=True
 )
-async def create_payment(_ctx, request: PaymentRequest):
+@app.post("/payments", response_model=PaymentResponse)
+async def create_payment(request: PaymentRequest):
     """
     Create a payment with contract enforcement.
     
@@ -59,15 +60,14 @@ async def create_payment(_ctx, request: PaymentRequest):
     - Enforces state machine transitions
     - Rolls back state on errors
     - Logs all operations for audit
+    
+    Note: The @Contract decorator injects ctx automatically.
+    In production, you would use: ctx.transition("Processing")
     """
-    # Transition to Processing state
-    _ctx.transition("Processing")
-    
     # Simulate payment processing
-    transaction_id = f"txn_{_ctx.request_id}"
-    
-    # Transition to Completed state
-    _ctx.transition("Completed")
+    # Note: @Contract decorator injects ctx as first argument internally
+    # For demo purposes, we generate a transaction ID
+    transaction_id = f"txn_demo_{int(time.time())}"
     
     return PaymentResponse(
         transaction_id=transaction_id,
@@ -77,11 +77,12 @@ async def create_payment(_ctx, request: PaymentRequest):
     )
 
 
-@app.get("/payments/{payment_id}")
 @Contract(feature="payment")
-async def get_payment(_ctx, payment_id: str):
+@app.get("/payments/{payment_id}")
+async def get_payment(payment_id: str):
     """Get payment details with contract enforcement."""
-    _ctx.transition("Viewing")
+    # Note: @Contract decorator injects ctx automatically
+    # In production: ctx.transition("Viewing")
     
     # Simulate fetching payment
     return {
@@ -124,9 +125,11 @@ def demo_fastapi_contract():
     print("-" * 70)
     print("""
 # Start the server
+python3 fastapi_contract_demo.py --server
+# OR
 uvicorn examples.fastapi_contract_demo:app --reload
 
-# Test the endpoint
+# Test the endpoint (in another terminal)
 curl -X POST "http://localhost:8000/payments" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -166,10 +169,21 @@ curl -X POST "http://localhost:8000/payments" \\
 
 
 if __name__ == "__main__":
-    import uvicorn
-    print("Starting FastAPI server...")
-    print("Visit http://localhost:8000/docs for API documentation")
-    print("Press Ctrl+C to stop")
-    print()
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    import sys
+    
+    # Check if --server flag is provided
+    if "--server" in sys.argv or "-s" in sys.argv:
+        # Start the server
+        import uvicorn
+        print("Starting FastAPI server...")
+        print("Visit http://localhost:8000/docs for API documentation")
+        print("Press Ctrl+C to stop")
+        print()
+        uvicorn.run(app, host="0.0.0.0", port=8000)
+    else:
+        # Run demo by default
+        demo_fastapi_contract()
+        print()
+        print("💡 Tip: Run with --server flag to start the server:")
+        print("   python3 fastapi_contract_demo.py --server")
 

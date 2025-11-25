@@ -13,7 +13,7 @@ async def create_user(
     db: Any = Depends(get_db)
 ):
     """Create a new user"""
-    from .schemas import UserCreate
+    from .models import UserCreate
     validated_data = UserCreate(**user_data)
     user = await service.create_user(db, validated_data)
     return user
@@ -47,7 +47,7 @@ async def update_user(
     db: Any = Depends(get_db)
 ):
     """Update user"""
-    from .schemas import UserUpdate
+    from .models import UserUpdate
     validated_data = UserUpdate(**user_data)
     user = await service.update_user(db, user_id, validated_data)
     return user

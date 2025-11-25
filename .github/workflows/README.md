@@ -100,7 +100,7 @@ All actions are pinned by SHA for security. To update SHAs, use the provided scr
 Current pinned actions:
 - `actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11` (v4.1.1)
 - `actions/setup-python@82c7e631bb3cdc910f68e0081d67478d79c6982d` (v5.1.0)
-- `actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2` (v4.0.0)
+- `actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830` (v4 - latest)
 - `actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392` (v4.0.0)
 - `dtolnay/rust-toolchain@0b1efabc08b657293548b77fb76cc02d26091c7e` (stable)
 - `trufflesecurity/trufflehog@35a5bf210f44d70a149b39d4db254abc7580cf6d` (main)

@@ -458,14 +458,4 @@ For issues and questions:
 
 ---
 
-## 🌟 Why Developers Love Ranex
-
-> "Ranex brings the safety of Rust to Python applications without requiring Rust knowledge. The `@Contract` decorator makes it trivial to enforce state machines and validate contracts."
-
-> "The security scanning caught vulnerabilities we didn't know existed. The architecture enforcement keeps our codebase clean."
-
-> "FastAPI integration is seamless. Just add middleware and decorate routes—that's it!"
-
----
-
 **Ready to get started?** Check out [INSTALLATION.md](INSTALLATION.md) or run `python3 examples/basic_contract.py` to see Ranex in action! 🚀

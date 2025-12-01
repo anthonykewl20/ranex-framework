@@ -39,7 +39,7 @@ Or manually:
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install ranex_core-0.0.1-cp312-cp312-manylinux_2_39_x86_64.whl
+pip install ranex_core-0.0.1-cp312-cp312-manylinux_2_28_x86_64.whl
 ```
 
 ### Initialize Your Project

@@ -32,7 +32,7 @@ This will:
 
 ```bash
 # 1. Install the Rust core wheel
-pip install ranex_core-0.0.1-cp312-cp312-manylinux_2_39_x86_64.whl
+pip install ranex_core-0.0.1-cp312-cp312-manylinux_2_28_x86_64.whl
 
 # 2. Install the Python package
 pip install ./ranex

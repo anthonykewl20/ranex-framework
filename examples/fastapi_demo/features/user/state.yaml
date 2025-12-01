@@ -1,6 +1,0 @@
-initial: Inactive
-states: [Inactive, Active, Suspended, Deleted]
-transitions:
-  Inactive: [Active]
-  Active: [Suspended, Deleted]
-  Suspended: [Active, Deleted]

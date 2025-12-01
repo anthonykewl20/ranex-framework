@@ -1,6 +1,0 @@
-initial: Draft
-states: [Draft, Active, OutOfStock, Discontinued]
-transitions:
-  Draft: [Active]
-  Active: [OutOfStock, Discontinued]
-  OutOfStock: [Active, Discontinued]

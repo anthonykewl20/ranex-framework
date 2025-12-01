@@ -1,0 +1,74 @@
+[build-system]
+requires = ["maturin>=1.0,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "ranex-core"
+version = "0.0.1"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "pydantic",
+    "pydantic-settings",
+    "sqlalchemy",
+    "alembic",
+    "typer",
+    "rich",
+    "PyYAML",
+    "redis",
+    "psycopg[binary]",
+    "asyncpg",
+    "mysql-connector-python",
+    "PyMySQL",
+    "passlib[bcrypt]",
+    "python-multipart",
+    "email-validator",
+    "prometheus-client>=0.19.0",  # For metrics export
+    "psutil>=5.9.0",  # For system resource monitoring (optional)
+    "httpx>=0.25.0",  # HTTP client for simulation and testing
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+]
+
+scripts = [
+    "requests>=2.28.0",  # For fetch_official_docs scripts
+    "beautifulsoup4>=4.11.0",  # For HTML parsing (bs4)
+    "html2text>=2020.1.16",  # For HTML to text conversion
+    "tqdm>=4.65.0",  # For progress bars
+    "tenacity>=8.0.0",  # For retry logic
+    "blake3>=0.3.0",  # For hash generation
+    "tomli>=2.0.0",  # For TOML parsing (Python <3.11 compat)
+]
+
+samples = [
+    "flask>=2.0.0",  # For CVE sample testing
+    "flask-cors>=3.0.0",  # For CORS samples
+    "django>=4.0.0",  # For Django CVE samples
+    "Pillow>=9.0.0",  # For image processing samples
+    "markupsafe>=2.0.0",  # Template security testing
+]
+
+[project.scripts]
+ranex = "ranex.cli:app"
+
+[tool.maturin]
+bindings = "pyo3"
+python-packages = ["ranex"]
+exclude = [".ranex/**", "DOCS/**", "target/**"]
+# Include additional Rust binaries in the wheel
+# ranex-cli provides an untamperable Rust CLI alternative
+strip = true
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+# Ignore line length errors in favor of readability
+ignore = ["E501"]
+select = ["E", "F", "W"]

@@ -1,0 +1,2 @@
+{"timestamp": "2025-12-01T20:18:38.194372", "level": "INFO", "command": "doctor", "message": "Command started: doctor", "request_id": "6e91fbc3", "user": "tonyo", "project_path": "/home/tonyo/projects/ranex-ce"}
+{"timestamp": "2025-12-01T20:18:38.395202", "level": "ERROR", "command": "doctor", "message": "Command failed: doctor", "request_id": "6e91fbc3", "user": "tonyo", "project_path": "/home/tonyo/projects/ranex-ce", "duration_ms": 200.82, "exit_code": 1}

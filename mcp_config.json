@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "ranex": {
+      "command": "./ranex_mcp",
+      "args": [],
+      "env": {
+        "RANEX_APP_DIR": "${workspaceFolder}/app"
+      }
+    }
+  }
+}
+

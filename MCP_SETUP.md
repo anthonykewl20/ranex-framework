@@ -2,7 +2,7 @@
 
 ## What is MCP?
 
-MCP (Model Context Protocol) allows AI assistants like Claude, Cursor, and others to use Ranex tools directly during code generation.
+MCP (Model Context Protocol) allows AI assistants like Claude, Cursor, Windsurf, and others to use Ranex tools directly during code generation.
 
 ## Community Edition Tools (10 of 43)
 
@@ -53,6 +53,65 @@ Add to your Cursor settings (`.cursor/mcp.json`):
 ### 3. Restart Cursor
 
 The MCP tools will now be available to Claude.
+
+---
+
+## Setup for Windsurf
+
+Windsurf (by Codeium) supports MCP servers for AI-powered development.
+
+### 1. Copy MCP Binary
+
+```bash
+# Copy to a global location
+cp ranex_mcp /usr/local/bin/
+# or to user directory
+cp ranex_mcp ~/.local/bin/
+```
+
+### 2. Configure Windsurf
+
+Add to `~/.codeium/windsurf/mcp_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "ranex": {
+      "command": "/usr/local/bin/ranex_mcp",
+      "args": [],
+      "env": {
+        "RANEX_APP_DIR": "./app"
+      }
+    }
+  }
+}
+```
+
+**Alternative: Project-level configuration**
+
+Create `.windsurf/mcp.json` in your project root:
+
+```json
+{
+  "mcpServers": {
+    "ranex": {
+      "command": "/usr/local/bin/ranex_mcp",
+      "args": [],
+      "env": {
+        "RANEX_APP_DIR": "./app"
+      }
+    }
+  }
+}
+```
+
+### 3. Restart Windsurf
+
+Close and reopen Windsurf. The MCP tools will be available to Cascade (Windsurf's AI).
+
+### 4. Verify Setup
+
+In Windsurf, open the Command Palette (`Cmd+Shift+P` / `Ctrl+Shift+P`) and look for MCP-related commands, or ask Cascade to use Ranex tools.
 
 ---
 

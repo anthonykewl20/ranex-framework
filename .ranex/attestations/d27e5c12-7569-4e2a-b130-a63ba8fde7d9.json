@@ -1,0 +1,19 @@
+{
+  "id": "d27e5c12-7569-4e2a-b130-a63ba8fde7d9",
+  "timestamp": "2025-12-01T12:30:26.947730334Z",
+  "project_path": "/home/tonyo/projects/ranex-ce",
+  "checks_completed": [
+    "structure",
+    "imports",
+    "atlas"
+  ],
+  "results_hash": "6942c3dc49c1d7b39ce1eecd6b5ba69eb2bbb834ab2c6f6950e42a0f5f72884e",
+  "summary": {
+    "total_checks": 3,
+    "passed_checks": 3,
+    "failed_checks": 0,
+    "passed": true
+  },
+  "signature": "28bd04654ef6da7b5af9a9f0e22cbdbcc19137742680835daf05fcce12a39abd7009d3b94cfd3edb62a22803c292001ba1fee46f85499c371917e8b07d74320e",
+  "public_key": "11f9d13eddd70ef5734efd4d49b3d80c47a8fa4d7ef4203b87f3daf80407461f"
+}

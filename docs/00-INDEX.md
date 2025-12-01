@@ -28,7 +28,8 @@ Welcome to the Ranex Community Edition documentation. This guide will help you g
 - [30-PROJECT-STRUCTURE.md](./30-PROJECT-STRUCTURE.md) - Recommended project structure
 - [31-DEVELOPMENT-WORKFLOW.md](./31-DEVELOPMENT-WORKFLOW.md) - Development workflow
 - [32-TESTING.md](./32-TESTING.md) - Testing with Ranex
-- [33-FASTAPI-INTEGRATION.md](./33-FASTAPI-INTEGRATION.md) - FastAPI integration
+- [33-FASTAPI-INTEGRATION.md](./33-FASTAPI-INTEGRATION.md) - FastAPI integration (full guide)
+- [34-FASTAPI-QUICKSTART.md](./34-FASTAPI-QUICKSTART.md) - **FastAPI Quick Start (5 minutes)** ⭐
 
 ### Help
 - [40-TROUBLESHOOTING.md](./40-TROUBLESHOOTING.md) - Common issues and solutions
